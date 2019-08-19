@@ -1,7 +1,7 @@
 {
-  "name": "mirror-cli",
+  "name": "folivora-cli",
   "version": "1.0.0",
-  "description": "herramienta para copiar mirrors de pacman",
+  "description": "Interfaz de línea de comando para gestionar mirrors locales de los repositorios linux",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -15,5 +15,9 @@
     "request": "^2.88.0",
     "tar": "^4.4.10",
     "tmp": "^0.1.0"
+  },
+  "devDependencies": {
+    "jasmine": "^3.4.0",
+    "jasmine-node": "^3.0.0"
   }
 }
