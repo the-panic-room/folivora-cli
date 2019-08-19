@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+const program = require('commander'),
+	path = require("path"),
+	lib = require("../src/");
+ 
+const name = 'mirrror-cli', version = '1.0.0';
+program
+	.version(version, '-v, --version');
+
+program
+    .command("move <origin>")
+	.option("--path <path>", "Directorio a aplicar la migración")
+	.option("--upgrade", "Comprueba si existe actualizaciones entre paquetes")
+	.option("--verbose", "Comprueba si existe actualizaciones entre paquetes")
+	.description('Realiza una migración del directorio actual')
+    .action(lib.moveFunc)
+
+program
+    .command("check <repo> <path>")
+	.description('Analiza el directoria actual como un repositorio')
+    .action(lib.check)
+
+program
+    .command("fix <repo> <dir>")
+	.option("--verbose", "Comprueba si existe actualizaciones entre paquetes")
+	.description('repara dependencias rotas y sin signature')
+    .action(lib.fixFunc)
+
+program.parse(process.argv);
