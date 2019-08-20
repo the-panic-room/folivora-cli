@@ -229,7 +229,8 @@ class Repository {
             var packageDB = new Package(self.name, {
                 arch: self.arch,
                 mirror: self.mirror + self.name + "/" + self.arch,
-                filename: self.db_name
+                filename: self.db_name,
+                path: self.path
             })
             packageDB.download(function (err) {
                 if (err) {

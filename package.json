@@ -4,7 +4,7 @@
   "description": "Interfaz de línea de comando para gestionar mirrors locales de los repositorios linux",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jasmine-node test/"
   },
   "author": "Jhonny Mata",
   "license": "ISC",
