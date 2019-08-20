@@ -30,7 +30,7 @@ class Package {
                 resolve(info)
             })
         })
-        return getFile(uri)        
+        return getFile(uri)
     }
     getFile(callback) {
         if (this.file) {
@@ -236,6 +236,7 @@ class Repository {
                 if (err) {
                     return reject(err)
                 }
+                self.db = packageDB
                 resolve()
             }, true)
         })
