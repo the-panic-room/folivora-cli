@@ -1,4 +1,5 @@
 var assert = require("assert"),
+    fs = require('fs'),
     path = require("path"),
     mockery = require("mockery"),
     nock = require('nock'),
@@ -12,7 +13,7 @@ describe("Repository", function () {
         .get('/repo/x86_64/repo.db.tar.gz')
         .reply(200, {
             message: "hola"
-        });    
+        });
     const Repository = require("../src/repo")
 
     it("Create repo object", function () {
@@ -55,7 +56,8 @@ describe("Repository", function () {
             arch: "x86_64",
             mirror: mirror
         });
-        return repo.updateDatabase().then(function () {
+        return repo.updateDatabase()
+        .then(function () {
             assert.ok(repo.db, "No existe el objeto de la base de datos")
             return new Promise(function (resolve, reject) {
                 repo.db.getFile(function (err, file) {
@@ -63,6 +65,16 @@ describe("Repository", function () {
                         return reject(err)
                     }
                     resolve(file)
+                })
+            })
+        })
+        .then(function () {
+            return new Promise(function (resolve, reject) {
+                fs.unlink(repo.db.path, function (err) {
+                    if (err) {
+                        return reject(err)
+                    }
+                    resolve()
                 })
             })
         })
