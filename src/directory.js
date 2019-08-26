@@ -1,11 +1,10 @@
-const fs = require("fs"),
-    path = require("path"),
-    zlib = require('zlib'),
-    tar = require('tar')
-
+const fs = require("fs")
+const path = require("path")
+const zlib = require('zlib')
+const tar = require('tar')
 
 class InfoBase {
-    constructor(uri, stat) {
+    constructor (uri, stat) {
         stat = stat || {}
         this.path = path.resolve(uri)        
         var datapath = path.parse(this.path)
@@ -15,55 +14,61 @@ class InfoBase {
         this.basename = path.basename(this.path)
         this.size = stat.size
     }
-    isFile() {
+
+    isFile () {
         return false
     }
-    isDir() {
+
+    isDir () {
         return false
     }
 }
-
 
 class File extends InfoBase {
     constructor (uri, stat) {
         super(uri, stat)
         this.ext = path.extname(this.name)
     }
-    isFile() {
+
+    isFile () {
         return true
     }
+
     isCompress () {
-        const compress = [".zip", ".tar", ".gz", ".xz", ".rar"]
+        const compress = ['.zip', '.tar', '.gz', '.xz', '.rar']
         return compress.indexOf(this.ext) !== -1
     }
+
     listCompress () {
         if (!this.isCompress()) {
-            throw new Error("Solo puede listarse archivos comprimidos")
+            throw new Error('Solo puede listarse archivos comprimidos')
         }
-        if (this.ext !== ".tar") {
+        if (this.ext !== '.tar') {
             return this.read()
         }
         return this.read(true).pipe(tar.t())
     }
+
     read (only) {
         let file = fs.createReadStream(this.path)
         if (!only && this.isCompress()) {
-            if ([".zip", ".tar"].indexOf(this.ext) !== -1) {
+            if (['.zip', '.tar'].indexOf(this.ext) !== -1) {
                 file = file.pipe(zlib.Unzip())
             }
-            if (this.ext === ".tar") {
+            if (this.ext === '.tar') {
                 file = file.pipe(new tar.Parse())
             }
         }
         return file
     }
-    write(data) {
+
+    write (data) {
         let file = fs.createWriteStream(this.path)
         if (this.isCompress()) {
-            if (this.ext === ".zip") {
+            if (this.ext === '.zip') {
                 file = file.pipe(zlib.createGzip())
             }
-            if (this.ext === ".tar") {
+            if (this.ext === '.tar') {
                 file = file.pipe(new tar.c())
             }
         }
@@ -71,12 +76,12 @@ class File extends InfoBase {
     }
 }
 
-
 class Directory extends InfoBase {
-    isDir() {
+    isDir () {
         return true
     }
-    list() {
+
+    list () {
         var self = this
         return new Promise(function (resolve, reject) {
             fs.readdir(self.path, function (err, dirs) {
@@ -89,23 +94,25 @@ class Directory extends InfoBase {
     }
 }
 
-
 class ListDirectory {
-    constructor(parent, dirs, info) {
+    constructor (parent, dirs, info) {
         this.index = 0
         this.parent = parent
         this.__paths__ = dirs || []
         this.info = info
     }
-    isLoadedIndex(index) {
+
+    isLoadedIndex (index) {
         return this.__paths__[index] instanceof InfoBase
     }
+
     count () {
         return this.__paths__.length
     }
-    getIndex(index) {
+
+    getIndex (index) {
         var self = this
-        if (typeof this.__paths__[index] === "undefined" || self.isLoadedIndex(index)) {
+        if (typeof this.__paths__[index] === 'undefined' || self.isLoadedIndex(index)) {
             return self.__paths__[index]
         }
         return new Promise(function (resolve, reject) {
@@ -118,14 +125,18 @@ class ListDirectory {
             })
         })
     }
-    next() {
+
+    next () {
         return this.getIndex(this.index)
     }
+
     isLast () {
-        return typeof this.__paths__[this.index] === "undefined"
+        return typeof this.__paths__[this.index] === 'undefined'
     }
+
     __loop (callback, replace, edit, exclude) {
-        var self = this, results = []
+        var self = this
+        var results = []
         self.index = 0
         return new Promise(function (resolve, reject) {
             function getResultLoop (result, index) {
@@ -137,9 +148,9 @@ class ListDirectory {
                         self.index++
                         return loop()
                     })
-                    .catch(function (err) {
-                        reject(err)
-                    })
+                        .catch(function (err) {
+                            reject(err)
+                        })
                 }
                 if (replace && (result || !exclude)) {
                     results.push((edit) ? result : self.getIndex(index))
@@ -156,47 +167,48 @@ class ListDirectory {
                     return result.then(function (data) {
                         getResultLoop(callback(data, self.index), self.index)
                     })
-                    .catch(function (err) {
-                        reject(err)
-                    })
+                        .catch(function (err) {
+                            reject(err)
+                        })
                 }
                 getResultLoop(callback(result, self.index), self.index)
             }
             loop()
         })
     }
+
     map (callback) {
         return this.__loop(callback, true, true, false)
     }
+
     forEach (callback) {
         return this.__loop(callback, false)
     }
-    filter(callback) {
+
+    filter (callback) {
         var self = this
         return self.__loop(callback, true, false, true)
-        .then(function (results) {
-            return new ListDirectory(self.parent, results, self.info)
-        })
-    }    
+            .then(function (results) {
+                return new ListDirectory(self.parent, results, self.info)
+            })
+    }
 }
 
-
-function getInfo(uri, callback) {
+function getInfo (uri, callback) {
     fs.stat(uri, function (err, info) {
         if (err) {
             return callback(err)
         }
-        var instance = InfoBase
+        var Instance = InfoBase
         if (info.isDirectory()) {
-            instance = Directory
+            Instance = Directory
         }
         if (info.isFile()) {
-            instance = File
+            Instance = File
         }
-        callback(null, new instance(uri, info))
+        callback(null, new Instance(uri, info))
     })
 }
-
 
 module.exports.InfoBase = InfoBase
 module.exports.File = File
