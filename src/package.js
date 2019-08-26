@@ -82,9 +82,9 @@ class Package {
             if (err) {
                 self.errors.push(err)
             } else if (hash !== self.md5) {
-                self.errors.push(
-                    new Error('El archivo esta corrupto o dañado')
-                )
+                var error = new Error('El archivo esta corrupto o dañado')
+                error.code = 'CORRUPT'
+                self.errors.push(error)
             }
             self.getSign(function (err, sig) {
                 if (err) {
@@ -145,9 +145,9 @@ class Package {
                         return callback(err)
                     }
                     if (hash !== self.md5) {
-                        return callback(
-                            new Error('El archivo esta corrupto o dañado')
-                        )
+                        var error = new Error('El archivo esta corrupto o dañado')
+                        error.code = 'CORRUPT'
+                        return callback(error)
                     }
                     fs.copyFile(temp, dest, function (err) {
                         if (err) {
