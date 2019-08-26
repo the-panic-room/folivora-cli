@@ -61,10 +61,11 @@ class Package {
                 callback(err)
             })
     }
-    checkSum (callback) {
+    checkSum (callback, dir) {
         var hash = crypto.createHash('md5')
         hash.setEncoding('hex')
-        var fd = fs.createReadStream(this.path)
+        dir = dir || this.path
+        var fd = fs.createReadStream(dir)
         hash.on("finish", function () {
             callback(null, hash.read())
         })
@@ -131,13 +132,23 @@ class Package {
                 if (err) {
                     return callback(err)
                 }
-                fs.copyFile(temp, dest, function (err) {
+                self.checkSum(function (err, hash) {
                     if (err) {
                         return callback(err)
                     }
-                    clean()
-                    callback2()
-                })
+                    if (hash !== self.md5) {
+                        return callback(
+                            new Error("El archivo esta corrupto o dañado")
+                        )
+                    }
+                    fs.copyFile(temp, dest, function (err) {
+                        if (err) {
+                            return callback(err)
+                        }
+                        clean()
+                        callback2()
+                    })
+                }, temp)
             })
         }
         function checkFile() {

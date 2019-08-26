@@ -4,7 +4,8 @@
   "description": "Interfaz de línea de comando para gestionar mirrors locales de los repositorios linux",
   "main": "index.js",
   "scripts": {
-    "test": "jasmine-node test/"
+    "test": "jasmine-node test/",
+    "linter": "./node_modules/.bin/eslint ./src/"
   },
   "author": "Jhonny Mata",
   "license": "ISC",
@@ -17,6 +18,12 @@
     "tmp": "^0.1.0"
   },
   "devDependencies": {
+    "eslint": "^6.2.2",
+    "eslint-config-standard": "^14.0.1",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^9.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
     "jasmine": "^3.4.0",
     "jasmine-node": "^3.0.0",
     "mockery": "^2.1.0",
