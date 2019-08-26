@@ -92,7 +92,7 @@ describe('Package', function () {
         var opt = Object.assign({}, options)
         opt.path = path.resolve('/tmp/')
         opt.md5 = '4d186321c1a7f0f354b297e8924ab230'
-        opt.mirror = mirror + 'repo/x86_64'        
+        opt.mirror = mirror + 'repo/x86_64'
         nock(mirror)
             .get(baseURI + opt.filename)
             .reply(200, responseContent)
