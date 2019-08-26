@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jasmine-node test/",
-    "linter": "./node_modules/.bin/eslint ./src/"
+    "linter": "./node_modules/.bin/eslint src/ test/"
   },
   "author": "Jhonny Mata",
   "license": "ISC",
