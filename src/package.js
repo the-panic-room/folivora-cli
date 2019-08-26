@@ -1,28 +1,27 @@
-const path = require("path"),
-    getInfo = require("./directory").getInfo,
-    tmp = require('tmp'),
-    fs = require('fs'),
-    request = require("request"),
-    crypto = require('crypto')
-
-
+const path = require('path')
+const tmp = require('tmp')
+const fs = require('fs')
+const request = require('request')
+const crypto = require('crypto')
+const getInfo = require('./directory').getInfo
 
 class Package {
-    constructor(name, options) {
+    constructor (name, options) {
         options = options || {}
         this.name = name
         this.version = options.version
         this.md5 = options.md5
         this.filename = options.filename
-        this.arch = options.arch || "any"
+        this.arch = options.arch || 'any'
         this.path = path.resolve(options.path || './', this.filename)
-        this.pathSig = this.path + ".sig"
-        if (typeof options.mirror !== "undefined") {
-            this.mirrorURI = options.mirror + "/" + this.filename
+        this.pathSig = this.path + '.sig'
+        if (typeof options.mirror !== 'undefined') {
+            this.mirrorURI = options.mirror + '/' + this.filename
         }
         this.errors = []
     }
-    _wrapper(uri) {
+
+    _wrapper (uri) {
         return new Promise(function (resolve, reject) {
             getInfo(uri, function (err, info) {
                 if (err) {
@@ -31,9 +30,9 @@ class Package {
                 resolve(info)
             })
         })
-        return getFile(uri)
     }
-    getFile(callback) {
+
+    getFile (callback) {
         if (this.file) {
             return callback(null, this.file)
         }
@@ -47,7 +46,8 @@ class Package {
                 callback(err)
             })
     }
-    getSign(callback) {
+
+    getSign (callback) {
         if (this.sig) {
             return callback(null, this.sig)
         }
@@ -61,26 +61,30 @@ class Package {
                 callback(err)
             })
     }
+
     checkSum (callback, dir) {
         var hash = crypto.createHash('md5')
         hash.setEncoding('hex')
         dir = dir || this.path
         var fd = fs.createReadStream(dir)
-        hash.on("finish", function () {
+        hash.on('finish', function () {
             callback(null, hash.read())
         })
-        fd.on("error", function (error) {
+        fd.on('error', function (error) {
             callback(error)
         })
         fd.pipe(hash)
     }
-    check(callback) {
+
+    check (callback) {
         var self = this
         self.checkSum(function (err, hash) {
             if (err) {
                 self.errors.push(err)
             } else if (hash !== self.md5) {
-                self.errors.push(new Error("El archivo esta corrupto o dañado"))
+                self.errors.push(
+                    new Error('El archivo esta corrupto o dañado')
+                )
             }
             self.getSign(function (err, sig) {
                 if (err) {
@@ -90,32 +94,35 @@ class Package {
             })
         })
     }
-    _download(uri, callback) {
-        var self = this, count = 0, receive = 0
-        console.log("Descargando paquete. %s", uri)
-        tmp.file(function _tempFileCreated(err, path, fd, cleanupCallback) {
+
+    _download (uri, callback) {
+        var count = 0
+        var receive = 0
+        console.log('Descargando paquete. %s', uri)
+        tmp.file(function _tempFileCreated (err, path, fd, cleanupCallback) {
             if (err) {
                 cleanupCallback()
                 return callback(err)
             }
-            var result = request.get(uri)
+            request.get(uri)
                 .on('data', function (data) {
                     receive += data.length
                     var porcent = (receive * 100) / count
-                    console.log("Recibido %d \%     [%d bytes / %d bytes]", porcent, receive, count)
+                    console.log('Recibido %d %     [%d bytes / %d bytes]', porcent, receive, count)
                 })
                 .on('response', function (response) {
                     count = response.headers['content-length']
-                    console.log("Cantidad total del archivo: %d bytes", count)
+                    console.log('Cantidad total del archivo: %d bytes', count)
                     if (response.statusCode !== 200) {
                         cleanupCallback()
-                        return callback({
+                        const error = {
                             status: response.statusCode,
                             text: response.statusMessage
-                        })
+                        }
+                        return callback(error)
                     }
                     response.pipe(fs.createWriteStream(path))
-                        .on("close", function () {
+                        .on('close', function () {
                             callback(null, path, cleanupCallback)
                         })
                 })
@@ -123,11 +130,12 @@ class Package {
                     cleanupCallback()
                     callback(err)
                 })
-        });
+        })
     }
-    download(callback, ignoreSig) {
+
+    download (callback, ignoreSig) {
         var self = this
-        function downloadFile(uri, dest, callback2) {
+        function downloadFile (uri, dest, callback2) {
             self._download(uri, function (err, temp, clean) {
                 if (err) {
                     return callback(err)
@@ -151,14 +159,14 @@ class Package {
                 }, temp)
             })
         }
-        function checkFile() {
+        function checkFile () {
             self.getFile(function (err, file) {
                 if (err) {
                     return downloadFile(self.mirrorURI, self.path, function () {
                         callback()
                     })
                 }
-                console.log("El archivo %s ya existe", self.path)
+                console.log('El archivo %s ya existe', self.path)
                 return callback()
             })
         }
@@ -167,11 +175,11 @@ class Package {
         }
         self.getSign(function (err, file) {
             if (err) {
-                return downloadFile(self.mirrorURI + ".sig", self.pathSig, function () {
+                return downloadFile(self.mirrorURI + '.sig', self.pathSig, function () {
                     checkFile()
                 })
             }
-            console.log("El archivo %s ya existe", self.pathSig)
+            console.log('El archivo %s ya existe', self.pathSig)
             checkFile()
         })
     }
