@@ -146,7 +146,7 @@ class Package {
                     }
                     if (hash !== self.md5) {
                         return callback(
-                            new Error("El archivo esta corrupto o dañado")
+                            new Error('El archivo esta corrupto o dañado')
                         )
                     }
                     fs.copyFile(temp, dest, function (err) {

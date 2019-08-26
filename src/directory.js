@@ -1,12 +1,12 @@
-const fs = require("fs")
-const path = require("path")
+const fs = require('fs')
+const path = require('path')
 const zlib = require('zlib')
 const tar = require('tar')
 
 class InfoBase {
     constructor (uri, stat) {
         stat = stat || {}
-        this.path = path.resolve(uri)        
+        this.path = path.resolve(uri)
         var datapath = path.parse(this.path)
         this.name = datapath.name
         this.ext = datapath.ext
@@ -69,7 +69,8 @@ class File extends InfoBase {
                 file = file.pipe(zlib.createGzip())
             }
             if (this.ext === '.tar') {
-                file = file.pipe(new tar.c())
+                const Tar = tar.c
+                file = file.pipe(new Tar())
             }
         }
         return file

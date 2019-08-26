@@ -92,7 +92,7 @@ module.exports.moveFunc = function (origin, cmd) {
                                         return Promise.all([
                                             dirsDestiny.filter(function (file2) {
                                                 var package2 = utils.parsePackage(file2.name)
-                                                var isEqual = !(/\.sig$/.test(file2.path)) && file2.isFile() && package2.name === _package.name                                                
+                                                var isEqual = !(/\.sig$/.test(file2.path)) && file2.isFile() && package2.name === _package.name
                                                 return isEqual && _package.version !== package2.version
                                             }),
                                             new Promise(function (resolve, reject) {
@@ -152,18 +152,18 @@ module.exports.moveFunc = function (origin, cmd) {
                                                         )
                                                     }
                                                 } else {
-                                                    console.log("Existe un nuevo paquete en el repositorio %s", file.name)
+                                                    console.log('Existe un nuevo paquete en el repositorio %s', file.name)
                                                     apply.push(
                                                         new Promise(function (resolve, reject) {
                                                             fs.copyFile(file.path, path.join(files.info.path, file.basename), function (err) {
-                                                                var ext = ".sig"
+                                                                var ext = '.sig'
                                                                 if (err) {
                                                                     return reject(err)
                                                                 }
                                                                 fs.copyFile(file.path + ext, path.join(files.info.path, file.basename) + ext, function (err) {
                                                                     if (err) {
                                                                         return reject(err)
-                                                                    }                                                    
+                                                                    }
                                                                     resolve()
                                                                 })
                                                             })
@@ -181,20 +181,19 @@ module.exports.moveFunc = function (origin, cmd) {
                                     })
                             })
                         })
-                        .catch(function (err) {
-                            console.error(err.toString())
-                        })
+                            .catch(function (err) {
+                                console.error(err.toString())
+                            })
                     })
                 })
                 .then(function () {
-                    console.log("Cambios aplicados")
+                    console.log('Cambios aplicados')
                 })
                 .catch(function (err) {
                     console.error(err)
                 })
         })
 }
-
 
 module.exports.fixFunc = function (dir, cmd) {
     dir = dir || process.cwd()
@@ -224,32 +223,32 @@ module.exports.fixFunc = function (dir, cmd) {
                 // listar todos los archivos del directorio
                 return dirs.map(function (dir) {
                     return dir.list()
-                    .then(function (files) {
-                        return files.filter(function (file) {
-                            return !(/\.sig$/.test(file.path))
+                        .then(function (files) {
+                            return files.filter(function (file) {
+                                return !(/\.sig$/.test(file.path))
+                            })
                         })
-                    })
                 })
             })
             .then(function (dirs) {
                 // recorrer el repositorio de origen
                 return dirs.forEach(function (repo) {
                     if (cmd.verbose) {
-                        console.info("Ingresando al repositorio " + repo.info.name)
+                        console.info('Ingresando al repositorio ' + repo.info.name)
                     }
                     // recorrer los archivos del repo actual del origen
                     return repo.forEach(function (file, index) {
                         if (!file.isFile()) {
                             if (cmd.verbose) {
-                                console.warn("Ignorando directorio " + file.name)
+                                console.warn('Ignorando directorio ' + file.name)
                             }
                             return
                         }
                         return new Promise(function (resolve, reject) {
-                            var pathSign = file.path + ".sig"
+                            var pathSign = file.path + '.sig'
                             getInfo(pathSign, function (err, info) {
                                 if (err) {
-                                    console.warn("El paquete %s no posee un signature", file.name)
+                                    console.warn('El paquete %s no posee un signature', file.name)
                                     return fs.unlink(file.path, function (err) {
                                         if (err) {
                                             reject(err)
@@ -269,30 +268,23 @@ module.exports.fixFunc = function (dir, cmd) {
     })
 }
 
-let availableRepos = [
-    "core",
-    "extra",
-    "community",
-    "lib"
-]
-
 module.exports.check = function (name, dir, cmd) {
     // let path = path || process.env.REPO_PATH
     var repo = new Repository(name, { path: dir })
     return repo.read().then(function () {
         repo.check().then(function (errors) {
             if (errors.length) {
-                console.log("El repositorio posee %s errores\n\n".red, errors.length)
+                console.log('El repositorio posee %s errores\n\n'.red, errors.length)
                 errors.forEach(function (_package) {
-                    console.log("\n[%s]\n".red, _package.package.name)
+                    console.log('\n[%s]\n'.red, _package.package.name)
                     _package.errors.forEach(function (error) {
                         var pathLog = error.path || _package.package.path
                         console.log(utils.errorMessages[error.code].red, pathLog)
                     })
                 })
-                console.log("\n\n Use el comando 'mirror-cli fix <repo-name> <repo-path>' para reparar las dependencias dañadas".yellow)
+                console.log('\n\n Use el comando \'mirror-cli fix <repo-name> <repo-path>\' para reparar las dependencias dañadas'.yellow)
             } else {
-                console.log("El repositorio no posee errores".green)
+                console.log('El repositorio no posee errores'.green)
             }
             return errors
         })
