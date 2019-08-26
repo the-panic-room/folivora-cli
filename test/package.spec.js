@@ -35,7 +35,28 @@ describe("Package", function () {
             }
             assert.equal(hash, pack.md5)
             done()
-            // aqui va assert
+        })
+    })
+    it("package checkSum invalid not exist file", function (done) {
+        var options = {
+            version: "2.2.53-1",
+            filename: "acl-2.2.51-1-x86_64.pkg.tar.xz",
+            md5: "aaaea535e603f2b55cb320a42cc70397",
+            arch: "x86_64",
+            path: path.resolve("./test/repo/")
+        }
+        var pack = new Package("acl", options)
+        pack.checkSum(function (error, hash) {
+            if (error) {
+                try {
+                    assert.equal(error.code, "ENOENT")
+                    done()
+                } catch(error) {
+                    done(error)
+                }
+                return
+            }
+            done("Esperaba un error al no existir archivo")
         })
     })
 })
