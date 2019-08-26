@@ -2,7 +2,9 @@ const path = require("path"),
     getInfo = require("./directory").getInfo,
     tmp = require('tmp'),
     fs = require('fs'),
-    request = require("request")
+    request = require("request"),
+    crypto = require('crypto')
+
 
 
 class Package {
@@ -58,6 +60,18 @@ class Package {
             .catch(function (err) {
                 callback(err)
             })
+    }
+    checkSum (callback) {
+        var hash = crypto.createHash('md5')
+        hash.setEncoding('hex')
+        var fd = fs.createReadStream(this.path)
+        hash.on("finish", function () {
+            callback(null, hash.read())
+        })
+        fd.on("error", function (error) {
+            callback(error)
+        })
+        fd.pipe(hash)
     }
     check(callback) {
         var self = this
