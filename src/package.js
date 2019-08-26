@@ -75,9 +75,11 @@ class Package {
     }
     check(callback) {
         var self = this
-        self.getFile(function (err, file) {
+        self.checkSum(function (err, hash) {
             if (err) {
                 self.errors.push(err)
+            } else if (hash !== self.md5) {
+                self.errors.push(new Error("El archivo esta corrupto o dañado"))
             }
             self.getSign(function (err, sig) {
                 if (err) {
