@@ -1,9 +1,11 @@
 var assert = require("assert"),
     path = require("path"),
-    Package = require("../src/package")
+    Package = require("../src/package"),
+    nock = require('nock')
 
 
 describe("Package", function () {
+    
     it("new Package", function () {
         var options = {
             version: "2.2.53-1",
@@ -57,6 +59,32 @@ describe("Package", function () {
                 return
             }
             done("Esperaba un error al no existir archivo")
+        })
+    })
+    it("download package", function (done) {
+        var mirror = "http://quantum-mirror.hu/mirrors/pub/manjaro/stable/"
+        var baseURI = '/repo/x86_64/'
+        var responseContent = "hola"
+        var options = {
+            version: "2.2.53-1",
+            filename: "acl-2.2.51-1-x86_64.pkg.tar.xz",
+            md5: "4d186321c1a7f0f354b297e8914ab240",
+            arch: "x86_64",
+            path: path.resolve("/tmp/"),
+            mirror: mirror + 'repo/x86_64'
+        }
+        nock(mirror)
+            .get(baseURI + options.filename)
+            .reply(200, responseContent)
+            .get(baseURI + options.filename + ".sig")
+            .reply(200, responseContent)
+        const MockPackage = require("../src/package")
+        var pack = new MockPackage("acl", options)
+        pack.download(function (error, file) {
+            if (error) {
+                return done(error)
+            }
+            done()
         })
     })
 })
