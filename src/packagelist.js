@@ -1,39 +1,48 @@
 class PackageList {
-    constructor(arr) {
+    constructor (arr) {
         this.__data__ = arr || []
     }
-    get(index) {
+
+    get (index) {
         return this.__data__[index]
     }
-    set(index, val) {
+
+    set (index, val) {
         this.__data__[index] = val
     }
-    count() {
+
+    count () {
         return this.__data__.length
     }
-    isEnd() {
+
+    isEnd () {
         return this.index >= this.count()
     }
-    next() {
+
+    next () {
         this.index++
     }
-    push(data) {
+
+    push (data) {
         this.__data__.push(data)
     }
-    filter(callback) {
+
+    filter (callback) {
         return this.__data__.filter(callback)
     }
-    foreach(callback) {
+
+    foreach (callback) {
         return this.__data__.foreach(callback)
     }
-    asyncForeach(callback) {
+
+    asyncForeach (callback) {
         var self = this
         return new Promise(function (resolve, reject) {
-            function loop() {
+            function loop () {
                 if (self.isEnd()) {
                     return resolve()
                 }
-                let p1 = callback(self.get(self.index), self.index)
+                const p1 = callback(self.get(self.index), self.index)
                 self.next()
                 if (p1 instanceof Promise) {
                     return p1.then(loop)
@@ -45,10 +54,12 @@ class PackageList {
             loop()
         })
     }
-    map(callback) {
+
+    map (callback) {
         return this.__data__.map(callback)
     }
-    getAll() {
+
+    getAll () {
         return this.__data__
     }
 }
