@@ -101,7 +101,6 @@ describe('Package', function () {
         const MockPackage = require('../src/package')
         var pack = new MockPackage(packageName, opt)
         pack.download(function (error, file) {
-            console.log(error)
             if (error) {
                 try {
                     assert.strictEqual(error.code, 'CORRUPT')
