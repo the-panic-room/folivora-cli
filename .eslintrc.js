@@ -4,7 +4,7 @@ module.exports = {
     node: true,
     commonjs: true,
     es6: true,
-    jasmine: true
+    mocha: true
   },
   extends: [
     'standard'

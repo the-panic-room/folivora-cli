@@ -1,9 +1,8 @@
 const path = require('path')
 const fs = require('fs')
 const tmp = require('tmp')
-const directory = require('./directory')
-const getInfo = directory.getInfo
-const File = directory.File
+const getInfo = require('./infofile')
+const File = require('./file')
 const Package = require('./package')
 const PackageList = require('./packagelist')
 

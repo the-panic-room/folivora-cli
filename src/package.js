@@ -3,7 +3,7 @@ const tmp = require('tmp')
 const fs = require('fs')
 const request = require('request')
 const crypto = require('crypto')
-const getInfo = require('./directory').getInfo
+const getInfo = require('./infofile')
 
 class Package {
     constructor (name, options) {
