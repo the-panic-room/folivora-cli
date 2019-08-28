@@ -34,14 +34,9 @@ describe('Package', function () {
         })
     })
     it('package checkSum invalid not exist file', function (done) {
-        var options = {
-            version: '2.2.53-1',
-            filename: 'acl-2.2.51-1-x86_64.pkg.tar.xz',
-            md5: 'aaaea535e603f2b55cb320a42cc70397',
-            arch: 'x86_64',
-            path: path.resolve('./example/')
-        }
-        var pack = new Package(packageName, options)
+        var opt = Object.assign({}, options)
+        opt.filename = 'acl-2.2.51-1-x86_64.pkg.tar.xz'
+        var pack = new Package(packageName, opt)
         pack.checkSum(function (error, hash) {
             if (error) {
                 try {
