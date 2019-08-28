@@ -2,8 +2,8 @@ const EXP_ARQUITECT = /x86_64|i318|any/ig
 const EXP_EXT = /\.pkg\.tar(\.xz)?/i
 const EXP_VERSION = /([0-9]+\.?-?){2,}/i
 const ERROR_MESSAGES = {
-    ENOENT: 'No existe el archivo o directorio %s',
-    ENOTDIR: '\'%s\' No es un directorio valido'
+    ENOENT: 'No existe el archivo o directorio',
+    ENOTDIR: 'No es un directorio valido'
 }
 const REPO_AVAILABLE = [
     'core',

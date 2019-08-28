@@ -1,21 +1,21 @@
 const fs = require('fs')
-const InfoBase = require('./infobase')
-const File = require('./file')
-const Directory = require('./directory')
+console.log(require('./directory'))
 
 function getInfo (uri, callback) {
+    const File = require('./file')
+    const Directory = require('./directory')
     fs.stat(uri, function (err, info) {
         if (err) {
             return callback(err)
         }
-        var Instance = InfoBase
+        var instance = null
         if (info.isDirectory()) {
-            Instance = Directory
+            instance = new Directory(uri, info)
         }
         if (info.isFile()) {
-            Instance = File
+            instance = new File(uri, info)
         }
-        callback(null, new Instance(uri, info))
+        callback(null, instance)
     })
 }
 module.exports = getInfo
