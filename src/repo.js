@@ -37,7 +37,7 @@ class Repository {
                 }
                 self.db = packageDB
                 resolve()
-            }, true)
+            }, true, true)
         })
     }
 

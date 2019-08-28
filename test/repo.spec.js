@@ -14,7 +14,7 @@ describe('Repository', function () {
 
     it('Create repo object', function () {
         var repo = new Repository('repo', {
-            path: path.resolve('./test/repo'),
+            path: path.resolve('./example'),
             arch: 'x86_64',
             mirror: mirror
         })
@@ -37,7 +37,7 @@ describe('Repository', function () {
     })
     it('create repo database invalid', function () {
         var repo = new Repository('notfound', {
-            path: path.resolve('./test/repo'),
+            path: path.resolve('./example'),
             arch: 'x86_64',
             mirror: mirror
         })

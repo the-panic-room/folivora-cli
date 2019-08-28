@@ -10,7 +10,7 @@ describe('Package', function () {
         filename: 'acl-2.2.53-1-x86_64.pkg.tar.xz',
         md5: 'aaaea535e603f2b55cb320a42cc70397',
         arch: 'x86_64',
-        path: path.resolve('./test/repo/')
+        path: path.resolve('./example/')
     }
     var packageName = 'acl'
     var mirror = 'http://quantum-mirror.hu/mirrors/pub/manjaro/stable/'
@@ -39,7 +39,7 @@ describe('Package', function () {
             filename: 'acl-2.2.51-1-x86_64.pkg.tar.xz',
             md5: 'aaaea535e603f2b55cb320a42cc70397',
             arch: 'x86_64',
-            path: path.resolve('./test/repo/')
+            path: path.resolve('./example/')
         }
         var pack = new Package(packageName, options)
         pack.checkSum(function (error, hash) {
@@ -112,6 +112,85 @@ describe('Package', function () {
             done(
                 new Error('Esperado un error por integridad del archivo')
             )
+        })
+    })
+    it('package info file', function (done) {
+        var pack = new Package(packageName, options)
+        pack.getFile(function (err, file) {
+            if (err) {
+                return done(err)
+            }
+            assert.strictEqual(file.path, pack.path)
+            assert.strictEqual(file.name + '.xz', pack.filename)
+            done()
+        })
+    })
+    it('package info file error', function (done) {
+        var opt = Object.assign({}, options)
+        opt.filename = 'acl-15-20.tar.xz'
+        var pack = new Package(packageName, opt)
+        pack.getFile(function (err, file) {
+            if (err) {
+                assert.strictEqual(err.code, 'ENOENT')
+                return done()
+            }
+            done('Esperando un error de archivos')
+        })
+    })
+    it('package info signature', function (done) {
+        var pack = new Package(packageName, options)
+        pack.getSign(function (err, file) {
+            if (err) {
+                return done(err)
+            }
+            assert.strictEqual(file.path, pack.pathSig)
+            assert.strictEqual(file.name, pack.filename)
+            done()
+        })
+    })
+    it('package info file signature error', function (done) {
+        var opt = Object.assign({}, options)
+        opt.filename = 'acl-15-20.tar.xz'
+        var pack = new Package(packageName, opt)
+        pack.getSign(function (err, file) {
+            if (err) {
+                assert.strictEqual(err.code, 'ENOENT')
+                return done()
+            }
+            done('Esperando un error de archivos')
+        })
+    })
+    it('package check file', function (done) {
+        var pack = new Package(packageName, options)
+        pack.check(function (err) {
+            if (err.length) {
+                return done(err)
+            }
+            done()
+        })
+    })
+    it('package check file not exist', function (done) {
+        var opt = Object.assign({}, options)
+        opt.filename = 'acl-15-20.tar.xz'
+        var pack = new Package(packageName, opt)
+        pack.check(function (err, file) {
+            if (err.length) {
+                assert.strictEqual(err[0].code, 'ENOENT')
+                return done()
+            }
+            done('Esperando un error de archivos')
+        })
+    })
+    it('package check file md5 invalid', function (done) {
+        var opt = Object.assign({}, options)
+        opt.md5 = '4d186321c1a7f0f354b297e8521ab130'
+        var pack = new Package(packageName, opt)
+        pack.check(function (err, file) {
+            if (err.length) {
+                assert.strictEqual(err[0].code, 'CORRUPT')
+                return done()
+            }
+            done('Esperando un error de archivos')
         })
     })
 })

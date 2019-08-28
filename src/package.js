@@ -95,10 +95,12 @@ class Package {
         })
     }
 
-    _download (uri, callback) {
+    _download (uri, verbose, callback) {
         var count = 0
         var receive = 0
-        console.log('Descargando paquete. %s', uri)
+        if (verbose) {
+            process.stdout.write('Descargando paquete. ' + uri)
+        }
         tmp.file(function _tempFileCreated (err, path, fd, cleanupCallback) {
             if (err) {
                 cleanupCallback()
@@ -108,11 +110,15 @@ class Package {
                 .on('data', function (data) {
                     receive += data.length
                     var porcent = (receive * 100) / count
-                    console.log('Recibido %d %     [%d bytes / %d bytes]', porcent, receive, count)
+                    if (verbose) {
+                        process.stdout.write('Recibido ' + porcent + ' %     [' + receive + ' bytes / ' + count + ' bytes]')
+                    }
                 })
                 .on('response', function (response) {
                     count = response.headers['content-length']
-                    console.log('Cantidad total del archivo: %d bytes', count)
+                    if (verbose) {
+                        process.stdout.write('Cantidad total del archivo: %d bytes', count)
+                    }
                     if (response.statusCode !== 200) {
                         cleanupCallback()
                         const error = {
@@ -133,12 +139,21 @@ class Package {
         })
     }
 
-    download (callback, ignoreSig) {
+    download (callback, ignoreSig, ignoreChecksum, verbose) {
         var self = this
         function downloadFile (uri, dest, callback2) {
-            self._download(uri, function (err, temp, clean) {
+            self._download(uri, verbose, function (err, temp, clean) {
                 if (err) {
                     return callback(err)
+                }
+                if (ignoreChecksum) {
+                    return fs.copyFile(temp, dest, function (err) {
+                        if (err) {
+                            return callback(err)
+                        }
+                        clean()
+                        callback2()
+                    })
                 }
                 self.checkSum(function (err, hash) {
                     if (err) {

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha test/",
-    "linter": "./node_modules/.bin/eslint src/** test/"
+    "linter": "./node_modules/.bin/eslint src/**/*.js test/*.spec.js"
   },
   "author": "Jhonny Mata",
   "license": "ISC",
