@@ -181,7 +181,9 @@ class Package {
                         callback()
                     })
                 }
-                console.log('El archivo %s ya existe', self.path)
+                if (verbose) {
+                    process.stdout.write('El archivo ' + self.path + ' ya existe')
+                }
                 return callback()
             })
         }
@@ -194,7 +196,9 @@ class Package {
                     checkFile()
                 })
             }
-            console.log('El archivo %s ya existe', self.pathSig)
+            if (verbose) {
+                process.stdout.write('El archivo ' + self.pathSig + ' ya existe')
+            }
             checkFile()
         })
     }

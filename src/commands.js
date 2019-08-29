@@ -16,7 +16,6 @@ module.exports.check = function (name, dir, cmd) {
             if (cmd.test) {
                 return errors
             }
-            console.log(errors.length)
             if (errors.length) {
                 process.stdout.write(('El repositorio posee ' + errors.length + ' errores').red)
                 process.stdout.write('\n\n')
@@ -34,6 +33,37 @@ module.exports.check = function (name, dir, cmd) {
                 })
                 process.stdout.write('Use el comando \'mirror-cli fix <repo-name> <repo-path>\' para reparar las dependencias dañadas\n'.yellow)
             }
+        })
+        .catch(function (err) {
+            if (cmd.test) {
+                return err
+            }
+            process.stdout.write('Error: \n\n')
+            process.stdout.write(utils.errorMessages[err.code].red + '\n')
+        })
+}
+module.exports.download = function (name, dir, cmd) {
+    var repo = new Repository(name, {
+        path: dir,
+        arch: cmd.arch,
+        mirror: cmd.mirror
+    })
+    return repo.updateDatabase()
+        .then(function () {
+            return repo.read()
+        })
+        .then(function () {
+            return repo.packages.asyncForeach(function (pkg) {
+                return new Promise(function (resolve, reject) {
+                    pkg.download(function (err, file) {
+                        if (err) {
+                            console.log(err)
+                            process.stdout.write(('No se pudo descargar el archivo ' + pkg.filename).red + '\n')
+                        }
+                        resolve()
+                    }, false, false, cmd.verbose)
+                })
+            })
         })
 }
 // module.exports.check = function (name, dir, cmd) {
