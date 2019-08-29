@@ -13,6 +13,14 @@ program
     .description('Analiza el directoria actual como un repositorio')
     .action(lib.commands.check)
 
+program
+    .command('download <repo> <path>')
+    .description('Descarga el repositorio remoto en la ruta seleccionada')
+    .option('--mirror <mirror>', 'URL del servidor remoto del repositorio')
+    .option('--arch <arch>', 'Define la arquitectura del repositorio')
+    .option('--verbose', 'Mostrar todos los detalles de las descargas')
+    .action(lib.commands.download)
+
 // program
 //     .command("move <origin>")
 // 	.option("--path <path>", "Directorio a aplicar la migración")

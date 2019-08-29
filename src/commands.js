@@ -56,39 +56,21 @@ module.exports.download = function (name, dir, cmd) {
             return repo.packages.asyncForeach(function (pkg) {
                 return new Promise(function (resolve, reject) {
                     pkg.download(function (err, file) {
-                        if (err) {
-                            console.log(err)
+                        if (cmd.verbose && err) {
                             process.stdout.write(('No se pudo descargar el archivo ' + pkg.filename).red + '\n')
                         }
-                        resolve()
+                        resolve(err)
                     }, false, false, cmd.verbose)
                 })
             })
         })
+        .catch(function (err) {
+            if (!cmd.verbose) {
+                return err
+            }
+            process.stdout.write(err.toString().red + '\n')
+        })
 }
-// module.exports.check = function (name, dir, cmd) {
-//     // let path = path || process.env.REPO_PATH
-//     var repo = new Repository(name, { path: dir })
-//     return repo.read().then(function () {
-//         repo.check().then(function (errors) {
-//             if (errors.length) {
-//                 console.log('El repositorio posee %s errores\n\n'.red, errors.length)
-//                 errors.forEach(function (_package) {
-//                     console.log('\n[%s]\n'.red, _package.package.name)
-//                     _package.errors.forEach(function (error) {
-//                         var pathLog = error.path || _package.package.path
-//                         console.log(utils.errorMessages[error.code].red, pathLog)
-//                     })
-//                 })
-//                 console.log('\n\n Use el comando \'mirror-cli fix <repo-name> <repo-path>\' para reparar las dependencias dañadas'.yellow)
-//             } else {
-//                 console.log('El repositorio no posee errores'.green)
-//             }
-//             return errors
-//         })
-//     })
-// }
-
 // const fs = require('fs')
 // const path = require('path')
 // const utils = require('./utils')
