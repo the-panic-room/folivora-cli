@@ -22,7 +22,7 @@ class Repository {
         }
     }
 
-    updateDatabase () {
+    updateDatabase (verbose) {
         var self = this
         return new Promise(function (resolve, reject) {
             var packageDB = new Package(self.name, {
@@ -37,7 +37,7 @@ class Repository {
                 }
                 self.db = packageDB
                 resolve()
-            }, true, true)
+            }, true, true, verbose)
         })
     }
 

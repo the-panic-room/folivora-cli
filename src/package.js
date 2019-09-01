@@ -98,7 +98,7 @@ class Package {
 
     _download (uri, verbose, callback) {
         if (verbose) {
-            process.stdout.write('Descargando paquete. ' + uri)
+            process.stdout.write('Descargando paquete. ' + uri + '\n')
         }
         tmp.file(function _tempFileCreated (err, path, fd, cleanupCallback) {
             if (err) {
@@ -143,12 +143,12 @@ class Package {
 
     download (callback, ignoreSig, ignoreChecksum, verbose) {
         var self = this
-        function downloadFile (uri, dest, callback2) {
+        function downloadFile (uri, dest, callback2, ignore) {
             self._download(uri, verbose, function (err, temp, clean) {
                 if (err) {
                     return callback(err)
                 }
-                if (ignoreChecksum) {
+                if (ignore) {
                     return fs.copyFile(temp, dest, function (err) {
                         if (err) {
                             return callback(err)
@@ -181,7 +181,7 @@ class Package {
                 if (err) {
                     return downloadFile(self.mirrorURI, self.path, function () {
                         callback()
-                    })
+                    }, ignoreChecksum)
                 }
                 if (verbose) {
                     process.stdout.write('El archivo ' + self.path + ' ya existe')
@@ -196,7 +196,7 @@ class Package {
             if (err) {
                 return downloadFile(self.mirrorURI + '.sig', self.pathSig, function () {
                     checkFile()
-                })
+                }, true)
             }
             if (verbose) {
                 process.stdout.write('El archivo ' + self.pathSig + ' ya existe')
