@@ -13,6 +13,7 @@ class Repository {
         this.path = options.path
         this.mirror = options.mirror
         this.arch = options.arch || 'any'
+        this.updated = 0
         if (this.mirror) {
             this.mirror = (this.mirror.match(/^https?:\/\//i)) ? this.mirror : 'http://' + this.mirror
         }
@@ -22,7 +23,23 @@ class Repository {
         }
     }
 
-    updateDatabase (verbose) {
+    updateState (callback) {
+        this.updated = Date.now()
+        fs.writeFile(path.join(this.path, '.state'), this.updated, callback)
+    }
+
+    readState (callback) {
+        var self = this
+        fs.readFile(path.join(self.path, '.state'), function (err, data) {
+            if (err) {
+                return callback(err)
+            }
+            self.updated = parseInt(data.toString())
+            callback(null, self.updated)
+        })
+    }
+
+    updateDatabase (verbose, force) {
         var self = this
         return new Promise(function (resolve, reject) {
             var packageDB = new Package(self.name, {
@@ -36,8 +53,13 @@ class Repository {
                     return reject(err)
                 }
                 self.db = packageDB
-                resolve()
-            }, true, true, verbose)
+                self.updateState(function (err) {
+                    if (err) {
+                        return reject(err)
+                    }
+                    resolve()
+                })
+            }, true, true, verbose, force)
         })
     }
 
@@ -61,7 +83,9 @@ class Repository {
                         if (err) {
                             return reject(err)
                         }
-                        resolve(info)
+                        self.readState(function () {
+                            resolve(info)
+                        })
                     })
                 })
             })

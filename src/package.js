@@ -141,7 +141,7 @@ class Package {
         })
     }
 
-    download (callback, ignoreSig, ignoreChecksum, verbose) {
+    download (callback, ignoreSig, ignoreChecksum, verbose, force) {
         var self = this
         function downloadFile (uri, dest, callback2, ignore) {
             self._download(uri, verbose, function (err, temp, clean) {
@@ -177,6 +177,11 @@ class Package {
             })
         }
         function checkFile () {
+            if (force) {
+                return downloadFile(self.mirrorURI, self.path, function () {
+                    callback()
+                }, ignoreChecksum)
+            }
             self.getFile(function (err, file) {
                 if (err) {
                     return downloadFile(self.mirrorURI, self.path, function () {
@@ -191,6 +196,11 @@ class Package {
         }
         if (ignoreSig) {
             return checkFile()
+        }
+        if (force) {
+            return downloadFile(self.mirrorURI + '.sig', self.pathSig, function () {
+                checkFile()
+            }, true)
         }
         self.getSign(function (err, file) {
             if (err) {

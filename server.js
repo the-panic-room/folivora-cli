@@ -9,15 +9,9 @@ const getinfo = require('./src').getinfo
 const Repository = require('./src').Repository
 var MIRRORS = []
 
-function downloadPackage (name, arch, mirror, dir, filename, verbose) {
-    const isDB = filename === (name + '.db.tar.gz')
-    var repo = new Repository(name, {
-        arch: arch,
-        mirror: mirror,
-        path: dir
-    })
+function downloadPackage (repo, filename, verbose, isDB) {    
     if (isDB) {
-        return repo.updateDatabase(verbose).then(function () {
+        return repo.updateDatabase(verbose, true).then(function () {
             return new Promise(function (resolve, reject) {
                 repo.db.getFile(function (err, file) {
                     if (err) {
@@ -69,6 +63,12 @@ module.exports = function (host, port, cmd) {
         const uri = MIRRORS[system.toLowerCase()]
         const root = path.resolve(dir, system, canal, name, arch)
         const filePath = path.join(root, filename)
+        var repo = new Repository(name, {
+            arch: arch,
+            mirror: uri + canal + '/',
+            path: root
+        })
+        const isDB = filename === repo.db_name
         if (['x86_64', 'i836', 'any'].indexOf(arch) === -1) {
             return response.status(400).send('Arquitectura no soportada')
         }
@@ -86,27 +86,34 @@ module.exports = function (host, port, cmd) {
             })
         })
         p1.then(function () {
-            getinfo(filePath, function (err, file) {
-                if (err) {
-                    if (!uri) {
-                        return response.sendStatus(404)
-                    }
-                    return downloadPackage(name, arch, uri + canal + '/', root, filename, cmd.verbose)
-                        .then(function (stream) {
-                            stream.pipe(response)
-                        })
-                        .catch(function (err) {
-                            console.log(err)
-                            response.status(503).send('No se pudo descargar el archivo')
-                        })
-                }
-                file.read(true).pipe(response)
+            return new Promise(function (resolve) {
+                repo.readState(function () {
+                    resolve(Math.abs(Date.now() - repo.updated) >= 86400000)
+                })
             })
         })
+            .then(function (isForceUpdate) {
+                getinfo(filePath, function (err, file) {
+                    if (err || (isDB && isForceUpdate)) {
+                        if (!uri) {
+                            return response.sendStatus(404)
+                        }
+                        return downloadPackage(repo, filename, cmd.verbose, isDB)
+                            .then(function (stream) {
+                                stream.pipe(response)
+                            })
+                            .catch(function (err) {
+                                console.log(err)
+                                response.status(503).send('No se pudo descargar el archivo')
+                            })
+                    }
+                    file.read(true).pipe(response)
+                })
+            })
             .catch(function (err) {
                 response.status(500).send(err.toString())
             })
-    })    
+    })
     loadJsonFile(mirror).then(function (data) {
         MIRRORS = data || []
     })
