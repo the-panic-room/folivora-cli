@@ -1,6 +1,8 @@
 require('colors')
 const path = require('path')
+const fs = require('fs')
 const express = require('express')
+const mkdirp = require('mkdirp')
 const loadJsonFile = require('load-json-file')
 const getinfo = require('./src').getinfo
 const Repository = require('./src').Repository
@@ -20,21 +22,40 @@ module.exports = function (host, port, cmd) {
     var app = express()
     const dir = cmd.path || process.env.MIRROR_PATH || '/var/cache/folivora/'
     const mirror = process.env.MIRROR_CONFIG || path.resolve('./repo.json')
-    app.get('/:system/:name/:arch/:filename', function (request, response, next) {
+    app.get('/:system/:canal/:name/:arch/:filename', function (request, response, next) {
         const name = request.params.name
         const arch = request.params.arch
         const filename = (request.params.filename === name) ? request.params.filename + 'db.tar.gz' : request.params.filename
         const system = request.params.system
+        const canal = request.params.canal
         const uri = MIRRORS[system.toLowerCase()]
-        const filePath = path.resolve(dir, system, name, arch, filename)
+        const root = path.resolve(dir, system, canal, name, arch)
+        const filePath = path.join(root, filename)
         console.log(filePath, uri)
-        getinfo(filePath, function (err, file) {
-            if (err) {
-                console.log(err)
-                return response.sendStatus(404)
-            }
-            file.read(true).pipe(response)
+        var p1 = new Promise(function (resolve, reject) {
+            getinfo(root, function (err) {
+                if (err) {
+                    return mkdirp(root, function (err) {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve()
+                    })
+                }
+                resolve()
+            })
         })
+        p1.then(function () {
+            getinfo(filePath, function (err, file) {
+                if (err) {
+                    return response.sendStatus(404)
+                }
+                file.read(true).pipe(response)
+            })
+        })
+            .catch(function (err) {
+                response.status(500).send(err.toString())
+            })
         // if (filename === name + 'db.tar.gz') {
         //     var repo = getRepo(name, arch, mirror, dir)
         // }
