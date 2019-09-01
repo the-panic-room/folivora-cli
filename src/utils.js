@@ -3,7 +3,8 @@ const EXP_EXT = /\.pkg\.tar(\.xz)?/i
 const EXP_VERSION = /([0-9]+\.?-?){2,}/i
 const ERROR_MESSAGES = {
     ENOENT: 'No existe el archivo o directorio',
-    ENOTDIR: 'No es un directorio valido'
+    ENOTDIR: 'No es un directorio valido',
+    CORRUPT: 'El archivo esta corrupto o dañado'
 }
 const REPO_AVAILABLE = [
     'core',
