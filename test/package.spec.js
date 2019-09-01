@@ -51,17 +51,20 @@ describe('Package', function () {
         })
     })
     it('download package', function (done) {
-        var baseURI = '/repo/x86_64/'
-        var responseContent = 'hola'
+        const baseURI = '/repo/x86_64/'
+        const responseContent = 'hola'
+        const responseHeader = {
+            'content-length': responseContent.length
+        }
         var opt = Object.assign({}, options)
         opt.path = path.resolve('/tmp/')
         opt.md5 = '4d186321c1a7f0f354b297e8914ab240'
         opt.mirror = mirror + 'repo/x86_64'
         nock(mirror)
             .get(baseURI + opt.filename)
-            .reply(200, responseContent)
+            .reply(200, responseContent, responseHeader)
             .get(baseURI + opt.filename + '.sig')
-            .reply(200, responseContent)
+            .reply(200, responseContent, responseHeader)
         const MockPackage = require('../src/package')
         var pack = new MockPackage(packageName, opt)
         pack.download(function (error, file) {
@@ -84,15 +87,18 @@ describe('Package', function () {
     it('download package corrupt', function (done) {
         var baseURI = '/repo/x86_64/'
         var responseContent = 'hola'
+        const responseHeader = {
+            'content-length': responseContent.length
+        }
         var opt = Object.assign({}, options)
         opt.path = path.resolve('/tmp/')
         opt.md5 = '4d186321c1a7f0f354b297e8924ab230'
         opt.mirror = mirror + 'repo/x86_64'
         nock(mirror)
             .get(baseURI + opt.filename)
-            .reply(200, responseContent)
+            .reply(200, responseContent, responseHeader)
             .get(baseURI + opt.filename + '.sig')
-            .reply(200, responseContent)
+            .reply(200, responseContent, responseHeader)
         const MockPackage = require('../src/package')
         var pack = new MockPackage(packageName, opt)
         pack.download(function (error, file) {

@@ -3,6 +3,7 @@ const tmp = require('tmp')
 const fs = require('fs')
 const request = require('request')
 const crypto = require('crypto')
+const ProgressBar = require('progress')
 const getInfo = require('./infofile')
 
 class Package {
@@ -96,8 +97,6 @@ class Package {
     }
 
     _download (uri, verbose, callback) {
-        var count = 0
-        var receive = 0
         if (verbose) {
             process.stdout.write('Descargando paquete. ' + uri)
         }
@@ -106,19 +105,22 @@ class Package {
                 cleanupCallback()
                 return callback(err)
             }
+            var bar
             request.get(uri)
                 .on('data', function (data) {
-                    receive += data.length
-                    var porcent = (receive * 100) / count
+                    const receive = data.length
                     if (verbose) {
-                        process.stdout.write('Recibido ' + porcent + ' %     [' + receive + ' bytes / ' + count + ' bytes]')
+                        bar.tick(receive)
                     }
                 })
                 .on('response', function (response) {
-                    count = response.headers['content-length']
-                    if (verbose) {
-                        process.stdout.write('Cantidad total del archivo: %d bytes', count)
-                    }
+                    const count = parseInt(response.headers['content-length'], 10)
+                    bar = new ProgressBar('  downloading [:bar] :rate/bps :percent :etas', {
+                        complete: '=',
+                        incomplete: ' ',
+                        width: 20,
+                        total: count
+                    })
                     if (response.statusCode !== 200) {
                         cleanupCallback()
                         const error = {

@@ -5,11 +5,13 @@ const nock = require('nock')
 
 describe('Repository', function () {
     var mirror = 'http://quantum-mirror.hu/mirrors/pub/manjaro/stable/'
+    var responseContent = 'hola'
+    const responseHeader = {
+        'content-length': responseContent.length
+    }
     nock(mirror)
         .get('/repo/x86_64/repo.db.tar.gz')
-        .reply(200, {
-            message: 'hola'
-        })
+        .reply(200, responseContent, responseHeader)
     const Repository = require('../src/repo')
 
     it('Create repo object', function () {

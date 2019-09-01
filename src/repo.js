@@ -117,7 +117,7 @@ class Repository {
             throw new Error('Debe cargar el repositorio primero. ejecute .read()')
         }
         return this.packages.filter(function (row) {
-            return row.name === name
+            return row.name === name || row.filename === name || (row.filename + '.sig') === name
         })[0]
     }
 
