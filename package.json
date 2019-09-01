@@ -16,7 +16,8 @@
     "request": "^2.88.0",
     "tar": "^4.4.10",
     "tmp": "^0.1.0",
-    "progress": "^2.0.0"
+    "progress": "^2.0.0",
+    "load-json-file": "^2.0.0"
   },
   "devDependencies": {
     "eslint": "^6.2.2",

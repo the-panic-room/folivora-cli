@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const program = require('commander')
 const lib = require('../src')
- 
+const server = require('../server')
+
 const name = 'mirrror-cli'
 const version = '1.0.0'
 
@@ -20,6 +21,14 @@ program
     .option('--arch <arch>', 'Define la arquitectura del repositorio')
     .option('--verbose', 'Mostrar todos los detalles de las descargas')
     .action(lib.commands.download)
+
+program
+    .command('runserver <host> <port>')
+    .description('Inicia un servidor mirror proxy del repositorio linux definido')
+    .option('--mirror <mirror>', 'URL del servidor remoto del repositorio')
+    .option('--mirror <path>', 'Directorio donde se almacena en cache')
+    .option('--verbose', 'Mostrar todos los detalles de las descargas')
+    .action(server)
 
 // program
 //     .command("move <origin>")
