@@ -75,7 +75,7 @@ module.exports.download = function (name, dir, cmd) {
         })
 }
 
-module.exports.move = function (name, src, dest, cmd) {
+module.exports.copy = function (name, src, dest, cmd) {
     var repo = new Repository(name, {
         path: src
     })

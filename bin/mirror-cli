@@ -30,15 +30,10 @@ program
     .option('--verbose', 'Mostrar todos los detalles de las descargas')
     .action(server)
 
-// program
-//     .command("move <origin>")
-// 	.option("--path <path>", "Directorio a aplicar la migración")
-// 	.option("--upgrade", "Comprueba si existe actualizaciones entre paquetes")
-// 	.option("--verbose", "Comprueba si existe actualizaciones entre paquetes")
-// 	.description('Realiza una migración del directorio actual')
-//     .action(lib.moveFunc)
-
-
+program
+    .command('copy <repo> <src> <dest>')
+    .description('Realiza una copia del directorio actual')
+    .action(lib.commands.copy)
 // program
 //     .command("fix <repo> <dir>")
 // 	.option("--verbose", "Comprueba si existe actualizaciones entre paquetes")
