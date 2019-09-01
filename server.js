@@ -4,17 +4,52 @@ const fs = require('fs')
 const express = require('express')
 const mkdirp = require('mkdirp')
 const loadJsonFile = require('load-json-file')
+const logger = require('morgan')
 const getinfo = require('./src').getinfo
 const Repository = require('./src').Repository
 var MIRRORS = []
 
-function getRepo (name, arch, mirror, dir) {
+function downloadPackage (name, arch, mirror, dir, filename, verbose) {
+    const isDB = filename === (name + '.db.tar.gz')
     var repo = new Repository(name, {
         arch: arch,
         mirror: mirror,
-        path: path.resolve(dir, name)
+        path: dir
     })
-    return repo
+    if (isDB) {
+        return repo.updateDatabase(verbose).then(function () {
+            return new Promise(function (resolve, reject) {
+                repo.db.getFile(function (err, file) {
+                    if (err) {
+                        return reject(err)
+                    }
+                    resolve(file.read(true))
+                })
+            })
+        })
+    }
+    return repo.read().then(function () {
+        return repo.getPackage(filename)
+    })
+        .then(function (pack) {
+            if (!pack) {
+                throw new Error('No existe el paquete en la base de datos')
+            }
+            return new Promise(function (resolve, reject) {
+                pack.download(function (err) {
+                    if (err) {
+                        return reject(err)
+                    }
+                    const fn = (/.sig$/ig.test(filename)) ? pack.getSign : pack.getFile
+                    fn.apply(pack, [function (err, file) {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(file.read(true))
+                    }])
+                }, false, false, verbose)
+            })
+        })
 }
 module.exports = function (host, port, cmd) {
     host = host || '127.0.0.1'
@@ -22,16 +57,21 @@ module.exports = function (host, port, cmd) {
     var app = express()
     const dir = cmd.path || process.env.MIRROR_PATH || '/var/cache/folivora/'
     const mirror = process.env.MIRROR_CONFIG || path.resolve('./repo.json')
+    if (cmd.verbose) {
+        app.use(logger('dev'))
+    }
     app.get('/:system/:canal/:name/:arch/:filename', function (request, response, next) {
         const name = request.params.name
         const arch = request.params.arch
-        const filename = (request.params.filename === name) ? request.params.filename + 'db.tar.gz' : request.params.filename
+        const filename = (request.params.filename === name + '.db') ? request.params.filename + '.tar.gz' : request.params.filename
         const system = request.params.system
         const canal = request.params.canal
         const uri = MIRRORS[system.toLowerCase()]
         const root = path.resolve(dir, system, canal, name, arch)
         const filePath = path.join(root, filename)
-        console.log(filePath, uri)
+        if (['x86_64', 'i836', 'any'].indexOf(arch) === -1) {
+            return response.status(400).send('Arquitectura no soportada')
+        }
         var p1 = new Promise(function (resolve, reject) {
             getinfo(root, function (err) {
                 if (err) {
@@ -48,7 +88,17 @@ module.exports = function (host, port, cmd) {
         p1.then(function () {
             getinfo(filePath, function (err, file) {
                 if (err) {
-                    return response.sendStatus(404)
+                    if (!uri) {
+                        return response.sendStatus(404)
+                    }
+                    return downloadPackage(name, arch, uri + canal + '/', root, filename, cmd.verbose)
+                        .then(function (stream) {
+                            stream.pipe(response)
+                        })
+                        .catch(function (err) {
+                            console.log(err)
+                            response.status(503).send('No se pudo descargar el archivo')
+                        })
                 }
                 file.read(true).pipe(response)
             })
@@ -56,34 +106,7 @@ module.exports = function (host, port, cmd) {
             .catch(function (err) {
                 response.status(500).send(err.toString())
             })
-        // if (filename === name + 'db.tar.gz') {
-        //     var repo = getRepo(name, arch, mirror, dir)
-        // }
-        
-
-        // var httpMessage = '[GET] ' + request.path
-        
-        // repo.read().then(function () {
-        //     return repo.getPackage(filename)
-        // })
-        //     .then(function (pack) {
-        //         if (!pack) {
-        //             return response.status(404).write('No existe el repositorio o archivo')
-        //         }
-        //         pack.getFile(function (err, file) {
-        //             if (err) {
-        //                 process.stdout.write((httpMessage + ' ' + 404).red + '\n')
-        //                 return response.status(404).write('No existe el archivo')
-        //             }
-        //             process.stdout.write((httpMessage + ' ' + 200).green + '\n')
-        //             file.read(true).pipe(response)
-        //         })
-        //     })
-        //     .catch(function () {
-        //         process.stdout.write((httpMessage + ' ' + 500).red + '\n')
-        //         response.status(500).write('No puede procesar el archivo')
-        //     })
-    })
+    })    
     loadJsonFile(mirror).then(function (data) {
         MIRRORS = data || []
     })
