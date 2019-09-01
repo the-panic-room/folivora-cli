@@ -42,6 +42,7 @@ module.exports.check = function (name, dir, cmd) {
             process.stdout.write(utils.errorMessages[err.code].red + '\n')
         })
 }
+
 module.exports.download = function (name, dir, cmd) {
     var repo = new Repository(name, {
         path: dir,
@@ -340,5 +341,3 @@ module.exports.download = function (name, dir, cmd) {
 //             })
 //     })
 // }
-
-
