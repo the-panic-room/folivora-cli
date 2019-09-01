@@ -1,4 +1,6 @@
 require('colors')
+const fs = require('fs')
+const path = require('path')
 const Repository = require('./repo')
 const utils = require('./utils')
 
@@ -70,6 +72,53 @@ module.exports.download = function (name, dir, cmd) {
                 return err
             }
             process.stdout.write(err.toString().red + '\n')
+        })
+}
+
+module.exports.move = function (name, src, dest, cmd) {
+    var repo = new Repository(name, {
+        path: src
+    })
+    return repo.read()
+        .then(function () {
+            return new Promise(function (resolve, reject) {
+                fs.copyFile(repo.db.path, path.resolve(dest, repo.db.filename), function (err) {
+                    if (err) {
+                        return reject(err)
+                    }
+                    resolve()
+                })
+            })
+        })
+        .then(function () {
+            return repo.packages.asyncForeach(function (pkg) {
+                return new Promise(function (resolve, reject) {
+                    pkg.checkSum(function (err, hash) {
+                        if (err) {
+                            process.stdout.write(('Error al procesar archivo' + pkg.path).red)
+                            return resolve()
+                        }
+                        if (hash !== pkg.md5) {
+                            process.stdout.write(('El archivo esta corrupto o dañado ' + pkg.path).red)
+                            return resolve()
+                        }
+                        fs.copyFile(pkg.path, path.resolve(dest, pkg.filename), function (err) {
+                            if (err) {
+                                return reject(err)
+                            }
+                            fs.copyFile(pkg.pathSig, path.resolve(dest, pkg.filename + '.sig'), function (err) {
+                                if (err) {
+                                    return reject(err)
+                                }
+                                resolve()
+                            })
+                        })
+                    })
+                })
+            })
+        })
+        .catch(function () {
+            process.stdout.write('No existe la base de datos'.red)
         })
 }
 // const fs = require('fs')
