@@ -103,7 +103,7 @@ class Repository {
                                         version: text.match(/%VERSION%\n(.*)/i)[1],
                                         filename: text.match(/%FILENAME%\n(.*)/i)[1],
                                         md5: text.match(/%MD5SUM%\n(.*)/i)[1],
-                                        arch: text.match(/%ARCH%\n(.*)/i)[1],
+                                        arch: self.arch || text.match(/%ARCH%\n(.*)/i)[1],
                                         path: self.path
                                     }
                                     options.mirror = self.mirror + self.name + '/' + options.arch
