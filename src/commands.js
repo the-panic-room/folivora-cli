@@ -53,9 +53,24 @@ module.exports.download = function (name, dir, cmd) {
         arch: cmd.arch,
         mirror: cmd.mirror
     })
-    return repo.updateDatabase()
+    repo.read()
         .then(function () {
-            return repo.read()
+            return new Promise(function (resolve, reject) {
+                getInfo(dir, function (err) {
+                    if (err) {
+                        return mkdirp(dir, function (err) {
+                            if (err) {
+                                return reject(err)
+                            }
+                            resolve()
+                        })
+                    }
+                    resolve()
+                })
+            })
+        })
+        .then(function () {
+            return repo.updateDatabase()
         })
         .then(function () {
             return repo.packages.asyncForeach(function (pkg) {
