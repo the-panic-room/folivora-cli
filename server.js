@@ -86,7 +86,7 @@ module.exports = function (host, port, cmd) {
             })
         })
         p1.then(function () {
-            if (!cmd.forceDownload) {
+            if (!cmd.forceDownload || cmd.offline) {
                 return Promise.resolve(false)
             }
             return new Promise(function (resolve) {
@@ -98,7 +98,7 @@ module.exports = function (host, port, cmd) {
             .then(function (isForceUpdate) {
                 getinfo(filePath, function (err, file) {
                     if (err || (isDB && isForceUpdate)) {
-                        if (!uri) {
+                        if (cmd.offline || !uri) {
                             return response.sendStatus(404)
                         }
                         return downloadPackage(repo, filename, cmd.verbose, isDB)

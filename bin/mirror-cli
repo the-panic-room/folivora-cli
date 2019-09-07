@@ -28,6 +28,7 @@ program
     .option('--mirror <mirror>', 'URL del servidor remoto del repositorio')
     .option('--cache-path <path>', 'Directorio donde se almacena en cache')
     .option('--force-download', 'Fuerza a descargar la base de datos periodicamente')
+    .option('--offline', 'Solo usa los paquetes almacenados en local')
     .option('--verbose', 'Mostrar todos los detalles de las descargas')
     .action(server)
 
