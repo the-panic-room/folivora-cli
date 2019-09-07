@@ -1,5 +1,4 @@
 const fs = require('fs')
-console.log(require('./directory'))
 
 function getInfo (uri, callback) {
     const File = require('./file')

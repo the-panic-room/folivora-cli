@@ -108,18 +108,18 @@ class Package {
             var bar
             request.get(uri)
                 .on('data', function (data) {
-                    const receive = data.length
+                    const receive = data.length / 1024
                     if (verbose) {
                         bar.tick(receive)
                     }
                 })
                 .on('response', function (response) {
                     const count = parseInt(response.headers['content-length'], 10)
-                    bar = new ProgressBar('  downloading [:bar] :rate/bps :percent :etas', {
+                    bar = new ProgressBar('  downloading [:bar] :rate/kbps :percent :etas', {
                         complete: '=',
                         incomplete: ' ',
                         width: 20,
-                        total: count
+                        total: count / 1024
                     })
                     if (response.statusCode !== 200) {
                         cleanupCallback()
@@ -189,7 +189,7 @@ class Package {
                     }, ignoreChecksum)
                 }
                 if (verbose) {
-                    process.stdout.write('El archivo ' + self.path + ' ya existe')
+                    process.stdout.write(('El archivo ' + self.path + ' ya existe\n').green)
                 }
                 return callback()
             })
@@ -209,7 +209,7 @@ class Package {
                 }, true)
             }
             if (verbose) {
-                process.stdout.write('El archivo ' + self.pathSig + ' ya existe')
+                process.stdout.write(('El archivo ' + self.pathSig + ' ya existe\n').green)
             }
             checkFile()
         })

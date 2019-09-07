@@ -105,8 +105,7 @@ module.exports = function (host, port, cmd) {
                             .then(function (stream) {
                                 stream.pipe(response)
                             })
-                            .catch(function (err) {
-                                console.log(err)
+                            .catch(function () {
                                 response.status(503).send('No se pudo descargar el archivo')
                             })
                     }
