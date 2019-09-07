@@ -49,7 +49,7 @@ module.exports = function (host, port, cmd) {
     host = host || '127.0.0.1'
     port = port || 8000
     var app = express()
-    const dir = cmd.path || process.env.MIRROR_PATH || '/var/cache/folivora/'
+    const dir = cmd.cachePath || process.env.MIRROR_PATH || '/var/cache/folivora/'
     const mirror = process.env.MIRROR_CONFIG || path.resolve('./repo.json')
     if (cmd.verbose) {
         app.use(logger('dev'))
@@ -86,6 +86,9 @@ module.exports = function (host, port, cmd) {
             })
         })
         p1.then(function () {
+            if (!cmd.forceDownload) {
+                return Promise.resolve(false)
+            }
             return new Promise(function (resolve) {
                 repo.readState(function () {
                     resolve(Math.abs(Date.now() - repo.updated) >= 86400000)
