@@ -26,7 +26,7 @@ program
     .command('runserver <host> <port>')
     .description('Inicia un servidor mirror proxy del repositorio linux definido')
     .option('--mirror <mirror>', 'URL del servidor remoto del repositorio')
-    .option('--mirror <path>', 'Directorio donde se almacena en cache')
+    .option('--cache-path <path>', 'Directorio donde se almacena en cache')
     .option('--verbose', 'Mostrar todos los detalles de las descargas')
     .action(server)
 
