@@ -82,4 +82,35 @@ describe('Directory', function () {
             done()
         })
     })
+
+    // filtar directorios.
+    it('loop path: good', function (done) {
+        var dir = new ListDirectory(path.resolve('./example/'), ['./', './'])
+        var event = dir.filter()
+        event.on('data', function (data, next) {
+            assert.ok(data instanceof Directory)
+            next(null, dir.index === 0)
+        })
+        event.on('close', function (obj) {
+            assert.strictEqual(obj.count(), 1)
+            done()
+        })
+        event.on('error', function (err) {
+            done(err)
+        })
+    })
+    // Pruebas de directorio callback.
+    it('loop path callback: good', function (done) {
+        var dir = new ListDirectory(path.resolve('./example/'), ['./', './'])
+        dir.filter(function (err, data, index) {
+            if (err) {
+                done(err)
+            }
+            assert.ok(data instanceof Directory)
+            return index === 0
+        }, function (obj) {
+            assert.strictEqual(obj.count(), 1)
+            done()
+        })
+    })
 })
