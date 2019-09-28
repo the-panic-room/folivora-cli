@@ -22,7 +22,7 @@ class ListDirectory {
     getIndex (index) {
         var self = this
         if (typeof this.__paths__[index] === 'undefined' || self.isLoadedIndex(index)) {
-            return self.__paths__[index]
+            return Promise.resolve(self.__paths__[index])
         }
         return new Promise(function (resolve, reject) {
             getInfo(path.join(self.parent, self.__paths__[index]), function (err, info) {
@@ -50,64 +50,37 @@ class ListDirectory {
     __loop (callback) {
         var event = new EventEmitter()
         var self = this
-        var results = []
         self.index = 0
         function loop () {
             if (self.isLast()) {
                 // Final del ciclo.
-                event.emit('close')
+                return event.emit('close')
             }
-            event.emit('data', self.getCurrent(), function (err) {
-                // Ejecuta para continuar.
-                if (err) {
-                    return event.emit('error', err)
-                }
-                self.next()
-                loop()
+            self.getCurrent().then(function (data) {
+                event.emit('data', data, function (err) {
+                    // Ejecuta para continuar.
+                    if (err) {
+                        return event.emit('error', err)
+                    }
+                    self.next()
+                    loop()
+                })
             })
+                .catch(function (err) {
+                    event.emit('error', err)
+                })
         }
         loop()
         if (typeof callback !== 'undefined') {
-            return event.on('data', callback)
+            event.on('data', function (data) {
+                callback(null, data, self.index)
+            })
+            event.on('error', function (err) {
+                callback(err)
+            })
+            return
         }
         return event
-        // return new Promise(function (resolve, reject) {
-        //     function getResultLoop (result, index) {
-        //         if (result instanceof Promise) {
-        //             return result.then(function (data) {
-        //                 if (replace && (data || !exclude)) {
-        //                     results.push((edit) ? data : self.getIndex(index))
-        //                 }
-        //                 self.index++
-        //                 return loop()
-        //             })
-        //                 .catch(function (err) {
-        //                     reject(err)
-        //                 })
-        //         }
-        //         if (replace && (result || !exclude)) {
-        //             results.push((edit) ? result : self.getIndex(index))
-        //         }
-        //         self.index++
-        //         return loop()
-        //     }
-        //     function loop () {
-        //         if (self.isLast()) {
-        //             return resolve((replace) ? results : null)
-        //         }
-        //         var result = self.next()
-        //         if (result instanceof Promise) {
-        //             return result.then(function (data) {
-        //                 getResultLoop(callback(data, self.index), self.index)
-        //             })
-        //                 .catch(function (err) {
-        //                     reject(err)
-        //                 })
-        //         }
-        //         getResultLoop(callback(result, self.index), self.index)
-        //     }
-        //     loop()
-        // })
     }
 
     map (callback) {
