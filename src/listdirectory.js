@@ -1,6 +1,7 @@
 const path = require('path')
 const InfoBase = require('./infobase')
 const getInfo = require('./infofile')
+const EventEmitter = require('events').EventEmitter
 
 class ListDirectory {
     constructor (parent, dirs, info) {
@@ -35,6 +36,10 @@ class ListDirectory {
     }
 
     next () {
+        this.index++
+    }
+
+    getCurrent () {
         return this.getIndex(this.index)
     }
 
@@ -42,55 +47,75 @@ class ListDirectory {
         return typeof this.__paths__[this.index] === 'undefined'
     }
 
-    __loop (callback, replace, edit, exclude) {
+    __loop (callback) {
+        var event = new EventEmitter()
         var self = this
         var results = []
         self.index = 0
-        return new Promise(function (resolve, reject) {
-            function getResultLoop (result, index) {
-                if (result instanceof Promise) {
-                    return result.then(function (data) {
-                        if (replace && (data || !exclude)) {
-                            results.push((edit) ? data : self.getIndex(index))
-                        }
-                        self.index++
-                        return loop()
-                    })
-                        .catch(function (err) {
-                            reject(err)
-                        })
-                }
-                if (replace && (result || !exclude)) {
-                    results.push((edit) ? result : self.getIndex(index))
-                }
-                self.index++
-                return loop()
+        function loop () {
+            if (self.isLast()) {
+                // Final del ciclo.
+                event.emit('close')
             }
-            function loop () {
-                if (self.isLast()) {
-                    return resolve((replace) ? results : null)
+            event.emit('data', self.getCurrent(), function (err) {
+                // Ejecuta para continuar.
+                if (err) {
+                    return event.emit('error', err)
                 }
-                var result = self.next()
-                if (result instanceof Promise) {
-                    return result.then(function (data) {
-                        getResultLoop(callback(data, self.index), self.index)
-                    })
-                        .catch(function (err) {
-                            reject(err)
-                        })
-                }
-                getResultLoop(callback(result, self.index), self.index)
-            }
-            loop()
-        })
+                self.next()
+                loop()
+            })
+        }
+        loop()
+        if (typeof callback !== 'undefined') {
+            return event.on('data', callback)
+        }
+        return event
+        // return new Promise(function (resolve, reject) {
+        //     function getResultLoop (result, index) {
+        //         if (result instanceof Promise) {
+        //             return result.then(function (data) {
+        //                 if (replace && (data || !exclude)) {
+        //                     results.push((edit) ? data : self.getIndex(index))
+        //                 }
+        //                 self.index++
+        //                 return loop()
+        //             })
+        //                 .catch(function (err) {
+        //                     reject(err)
+        //                 })
+        //         }
+        //         if (replace && (result || !exclude)) {
+        //             results.push((edit) ? result : self.getIndex(index))
+        //         }
+        //         self.index++
+        //         return loop()
+        //     }
+        //     function loop () {
+        //         if (self.isLast()) {
+        //             return resolve((replace) ? results : null)
+        //         }
+        //         var result = self.next()
+        //         if (result instanceof Promise) {
+        //             return result.then(function (data) {
+        //                 getResultLoop(callback(data, self.index), self.index)
+        //             })
+        //                 .catch(function (err) {
+        //                     reject(err)
+        //                 })
+        //         }
+        //         getResultLoop(callback(result, self.index), self.index)
+        //     }
+        //     loop()
+        // })
     }
 
     map (callback) {
-        return this.__loop(callback, true, true, false)
+        return this.__loop(callback)
     }
 
     forEach (callback) {
-        return this.__loop(callback, false)
+        return this.__loop(callback)
     }
 
     filter (callback) {
