@@ -7,6 +7,8 @@ const EventEmitter = require('events').EventEmitter
  * @param {String} uri url del directorio o archivo.
  * @param {Functions} callback funcion de escucha.
  * @returns {Directory|File}
+ * @version 0.0.1
+ * @author Jhonny Mata
  */
 function getInfo (uri, callback) {
     const File = require('./file')
