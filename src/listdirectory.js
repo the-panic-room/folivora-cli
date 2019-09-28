@@ -221,6 +221,20 @@ class ListDirectory {
         }
         return event
     }
+
+    /**
+     * @function find
+     * @description Localiza el nombre del directorio.
+     * @param {String} name
+     */
+    find (name) {
+        for (var i = 0, n = this.count(); i < n; i++) {
+            if (this.getRawIndex(i) === name) {
+                return this.getIndex(i)
+            }
+        }
+        return Promise.resolve(null)
+    }
 }
 
 module.exports = ListDirectory
