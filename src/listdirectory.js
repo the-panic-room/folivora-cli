@@ -3,6 +3,12 @@ const InfoBase = require('./infobase')
 const getInfo = require('./infofile')
 const EventEmitter = require('events').EventEmitter
 
+/**
+ * @class ListDirectory
+ * @description Listado de directorios.
+ * @version 0.0.1
+ * @author Jhonny Mata
+ */
 class ListDirectory {
     constructor (parent, dirs, info) {
         this.index = 0
@@ -11,14 +17,31 @@ class ListDirectory {
         this.info = info
     }
 
+    /**
+     * @function isLoadedIndex
+     * @description Comprobar si es una instancia InfoBase
+     * @param {Number} index
+     * @returns {Boolean}
+     */
     isLoadedIndex (index) {
         return this.__paths__[index] instanceof InfoBase
     }
 
+    /**
+     * @function count
+     * @description Retorna la cantidad de directorios almacenados.
+     * @returns {Number}
+     */
     count () {
         return this.__paths__.length
     }
 
+    /**
+     * @function getIndex
+     * @description Obtiene un Promise con la info del directorio o archivo.
+     * @param {Number} index
+     * @returns {Promise}
+     */
     getIndex (index) {
         var self = this
         if (typeof this.__paths__[index] === 'undefined' || self.isLoadedIndex(index)) {
@@ -35,30 +58,66 @@ class ListDirectory {
         })
     }
 
+    /**
+     * @function setIndex
+     * @description Asignar un objeto al indice.
+     * @param {Number} index
+     * @param {String|InfoBase} val
+     */
     setIndex (index, val) {
         this.__paths__[index] = val
     }
 
+    /**
+     * @function append
+     * @description Agregar un nuevo objeto al listado.
+     * @param {String|InfoBase} val
+     */
     append (val) {
         this.__paths__.push(val)
     }
 
+    /**
+     * @function next
+     * @description Actualiza el indice del registro.
+     */
     next () {
         this.index++
     }
 
+    /**
+     * @function getCurrent
+     * @description Obtiene el objeto del indice actual.
+     * @returns {Promise}
+     */
     getCurrent () {
         return this.getIndex(this.index)
     }
 
+    /**
+     * @function setCurrent
+     * @description Asigna el valor del indice actual.
+     * @param {String|InfoBase} val
+     */
     setCurrent (val) {
         this.setIndex(this.index, val)
     }
 
+    /**
+     * @function isLast
+     * @description Valida si el indice actual ha culminado el recorrido.
+     * @returns {Boolean}
+     */
     isLast () {
         return typeof this.__paths__[this.index] === 'undefined'
     }
 
+    /**
+     * @function getRawIndex
+     * @description Obtener el valor en bruto del indice.
+     * @param {Number} index
+     * @returns {String}
+     */
     getRawIndex (index) {
         if (!this.isLoadedIndex(index)) {
             return this.__paths__[index]
@@ -66,6 +125,13 @@ class ListDirectory {
         return (!this.__paths__[index]) ? null : this.__paths__[index].path
     }
 
+    /**
+     * @function loop
+     * @description Recorrido o reemplazado de los directorios.
+     * @param {Function} callback funcion de recorrido.
+     * @param {Function} callback2 funcion de cierre o finalizado.
+     * @returns {EventEmitter}
+     */
     loop (callback, callback2) {
         var event = new EventEmitter()
         var self = this
@@ -111,6 +177,13 @@ class ListDirectory {
         return event
     }
 
+    /**
+     * @function filter
+     * @description Filtra el listado de directorios actual.
+     * @param {Function} callback funcion de evaluacion.
+     * @param {Function} callback2 funcion de cierre.
+     * @returns {EventEmitter}
+     */
     filter (callback, callback2) {
         var self = this
         var obj = new ListDirectory(self.parent, [], self.info)
