@@ -25,11 +25,12 @@ describe('Package', function () {
     })
     it('package checkSum', function (done) {
         var pack = new Package(packageName, options)
-        pack.checkSum(function (error, hash) {
-            if (error) {
-                return done(error)
-            }
-            assert.strictEqual(hash, pack.md5)
+        var event = pack.checkSum()
+        event.on('error', function (err) {
+            done(err)
+        })
+        event.on('finish', function (isValid) {
+            assert.ok(isValid)
             done()
         })
     })
@@ -37,16 +38,12 @@ describe('Package', function () {
         var opt = Object.assign({}, options)
         opt.filename = 'acl-2.2.51-1-x86_64.pkg.tar.xz'
         var pack = new Package(packageName, opt)
-        pack.checkSum(function (error, hash) {
-            if (error) {
-                try {
-                    assert.strictEqual(error.code, 'ENOENT')
-                    done()
-                } catch (error) {
-                    done(error)
-                }
-                return
-            }
+        var event = pack.checkSum()
+        event.on('error', function (err) {
+            assert.strictEqual(err.code, 'ENOENT')
+            done()
+        })
+        event.on('finish', function (isValid) {
             done('Esperaba un error al no existir archivo')
         })
     })
@@ -67,10 +64,8 @@ describe('Package', function () {
             .reply(200, responseContent, responseHeader)
         const MockPackage = require('../src/package')
         var pack = new MockPackage(packageName, opt)
-        pack.download(function (error, file) {
-            if (error) {
-                return done(error)
-            }
+        var event = pack.download()
+        event.on('finish', function () {
             fs.unlink(pack.path, function (err) {
                 if (err) {
                     return done(err)
@@ -82,6 +77,9 @@ describe('Package', function () {
                     done()
                 })
             })
+        })
+        event.on('error', function (err) {
+            done(err)
         })
     })
     it('download package corrupt', function (done) {
@@ -101,23 +99,20 @@ describe('Package', function () {
             .reply(200, responseContent, responseHeader)
         const MockPackage = require('../src/package')
         var pack = new MockPackage(packageName, opt)
-        pack.download(function (error, file) {
-            if (error) {
-                try {
-                    assert.strictEqual(error.code, 'CORRUPT')
-                    return done()
-                } catch (err) {
-                    return done(err)
-                }
-            }
-            done(
-                new Error('Esperado un error por integridad del archivo')
-            )
+        var event = pack.download()
+        event.on('finish', function () {
+            console.log('close')
+            done('Esperado un error por integridad del archivo')
+        })
+        event.on('error', function (err) {
+            console.log('error')
+            assert.strictEqual(err.code, 'invalid')
+            done()
         })
     })
     it('package info file', function (done) {
         var pack = new Package(packageName, options)
-        pack.getFile(function (err, file) {
+        pack.read(function (err, file) {
             if (err) {
                 return done(err)
             }
@@ -130,7 +125,7 @@ describe('Package', function () {
         var opt = Object.assign({}, options)
         opt.filename = 'acl-15-20.tar.xz'
         var pack = new Package(packageName, opt)
-        pack.getFile(function (err, file) {
+        pack.read(function (err, file) {
             if (err) {
                 assert.strictEqual(err.code, 'ENOENT')
                 return done()
@@ -140,7 +135,7 @@ describe('Package', function () {
     })
     it('package info signature', function (done) {
         var pack = new Package(packageName, options)
-        pack.getSign(function (err, file) {
+        pack.readSign(function (err, file) {
             if (err) {
                 return done(err)
             }
@@ -153,7 +148,7 @@ describe('Package', function () {
         var opt = Object.assign({}, options)
         opt.filename = 'acl-15-20.tar.xz'
         var pack = new Package(packageName, opt)
-        pack.getSign(function (err, file) {
+        pack.readSign(function (err, file) {
             if (err) {
                 assert.strictEqual(err.code, 'ENOENT')
                 return done()
@@ -176,7 +171,7 @@ describe('Package', function () {
         var pack = new Package(packageName, opt)
         pack.check(function (err, file) {
             if (err.length) {
-                assert.strictEqual(err[0].code, 'ENOENT')
+                assert.strictEqual(err[0].code, 'invalid')
                 return done()
             }
             done('Esperando un error de archivos')
@@ -188,7 +183,7 @@ describe('Package', function () {
         var pack = new Package(packageName, opt)
         pack.check(function (err, file) {
             if (err.length) {
-                assert.strictEqual(err[0].code, 'CORRUPT')
+                assert.strictEqual(err[0].code, 'invalid')
                 return done()
             }
             done('Esperando un error de archivos')

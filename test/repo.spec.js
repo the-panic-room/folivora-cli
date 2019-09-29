@@ -58,7 +58,7 @@ describe('Repository', function () {
             .then(function () {
                 assert.ok(repo.db, 'No existe el objeto de la base de datos')
                 return new Promise(function (resolve, reject) {
-                    repo.db.getFile(function (err, file) {
+                    repo.db.read(function (err, file) {
                         if (err) {
                             return reject(err)
                         }

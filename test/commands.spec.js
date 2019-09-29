@@ -40,6 +40,8 @@ describe('command: download package', function () {
     })
     it('download sucess', function () {
         nock(mirror)
+            .get(baseURI + 'extra.db.tar.gz')
+            .reply(200, responseContent)
             .get(baseURI + 'acl-2.2.53-1-x86_64.pkg.tar.xz.sig')
             .reply(200, responseContent)
             .get(baseURI + 'acl-2.2.53-1-x86_64.pkg.tar.xz')
@@ -59,7 +61,8 @@ describe('command: download package', function () {
         return commands.download('extra', dirPath, {
             test: true,
             mirror: mirror,
-            verbose: false
+            verbose: false,
+            arch: 'x86_64'
         })
     })
     after(function (done) {
