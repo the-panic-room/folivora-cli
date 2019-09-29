@@ -22,14 +22,20 @@ class Package extends EventEmitter {
     constructor (name, options) {
         super()
         options = options || {}
+        this.ignoreSig = false
+        this.ignoreChecksum = false
+        this.forceDownload = false
         this.name = name
         this.version = options.version
         this.md5 = options.md5
         this.filename = options.filename
         this.arch = options.arch || 'any'
-        this.path = path.resolve(options.path || './', this.filename)
+        this.dir = options.path
+        this.basename = path.basename(options.path)
+        this.path = path.resolve(this.dir || './', this.filename)
         this.pathSig = this.path + '.sig'
         if (typeof options.mirror !== 'undefined') {
+            this.mirror = options.mirror
             this.mirrorURI = options.mirror + '/' + this.filename
         }
         this.errors = []
@@ -60,7 +66,7 @@ class Package extends EventEmitter {
             }
             event.emit('close', isExist)
         })
-        if (typeof callback !== 'undefined') {
+        if (typeof callback === 'function') {
             event.on('close', function (isExist) {
                 callback(isExist)
             })
@@ -163,16 +169,26 @@ class Package extends EventEmitter {
             })
         })
         event.emit('signature')
-        if (typeof callback !== 'undefined') {
+        if (typeof callback === 'function') {
             event.once('finish', callback)
             return
         }
         return event
     }
 
+    /**
+     * @function _downloadFile
+     * @description descarga el contenido de la url.
+     * @param {String} url funcion de escucha.
+     * @param {Boolean} verbose mostrar mas detalles en consola.
+     */
     _downloadFile (url, verbose) {
         var event = new EventEmitter()
         event.once('temp-file', function (dir, clean) {
+            var stream = fs.createWriteStream(dir)
+                .on('close', function () {
+                    event.emit('close', dir, clean)
+                })
             var response = request.get(url)
             var bar = null
             if (verbose) {
@@ -191,13 +207,12 @@ class Package extends EventEmitter {
                         status: response.statusCode,
                         text: response.statusMessage
                     }
-                    event.emit('error', error)
+                    return event.emit('error', error)
                 }
                 response.on('end', function () {
                     if (verbose) {
                         process.stdout.write('Descarga completada: ' + url + '\n')
                     }
-                    event.emit('close', dir, clean)
                 })
             })
                 .on('data', function (data) {
@@ -205,8 +220,8 @@ class Package extends EventEmitter {
                     if (verbose) {
                         bar.tick(receive)
                     }
-                })                
-                .pipe(fs.createWriteStream(dir))
+                })
+                .pipe(stream)
             event.emit('response', response)
         })
         tmp.file(function _tempFileCreated (err, path, fd, cleanupCallback) {
@@ -219,191 +234,92 @@ class Package extends EventEmitter {
         return event
     }
 
-    download (callback, ignoreSig, ignoreChecksum, verbose, force) {
+    /**
+     * @function download
+     * @description descarga el contenido del paquete.
+     * @param {Function} callback funcion de escucha.
+     * @param {Boolean} verbose mostrar mas detalles en consola.
+     */
+    download (callback, verbose) {
         var self = this
-        if (!ignoreSig) {
-            self._downloadFile(self.mirrorURI + '.sig', verbose)
-                .once('close', function (dir, clean) {
-                    var event = this
-                    fs.copyFile(dir, self.pathSig, function (err) {
-                        if (err) {
-                            return event.emit('error', err)
-                        }
-                        clean()
-                        event.emit('finish')
-                    })
-                })
-        }
-        var responseFile = self._downloadFile(self.mirrorURI, verbose)
-            .once('close', function (dir, clean) {
-                var event = this
-                if (!ignoreChecksum) {
-                    self.checkSum(dir).once('finish', function (isValid) {
-                        if (!isValid) {
-                            return event.emit('error', { code: 'invalid', message: 'Archivo invalido o corrupto' })
-                        }
-                        fs.copyFile(dir, self.path, function (err) {
-                            if (err) {
-                                return event.emit('error', err)
-                            }
-                            clean()
-                            event.emit('finish')
-                        })
-                    })
-                        .on('error', function (err) {
-                            event.emit('error', err)
-                        })
+        var event = new EventEmitter()
+        event.once('validate-signature', function () {
+            self.isExistSig(function (isValid) {
+                if (!self.forceDownload || !isValid) {
+                    event.emit('download-signature')
                 } else {
-                    fs.copyFile(dir, self.path, function (err) {
-                        if (err) {
-                            return event.emit('error', err)
-                        }
-                        clean()
-                        event.emit('finish')
-                    })
+                    event.emit('validate-package')
                 }
             })
-        if (typeof callback !== 'undefined') {
-            responseFile.once('finish', function () {
+        })
+        event.once('validate-package', function () {
+            self.isExistSig(function (isValid) {
+                if (!self.forceDownload || !isValid) {
+                    event.emit('download-package')
+                } else {
+                    event.emit('finish')
+                }
+            })
+        })
+        event.once('download-signature', function () {
+            self._downloadFile(self.mirrorURI + '.sig', verbose)
+                .once('response', function (response) {
+                    event.emit('response-signature', response)
+                })
+                .once('close', function (dir, clean) {
+                    event.emit('copy-file', dir, self.pathSig, clean)
+                    event.emit('validate-package')
+                })
+        })
+        event.once('download-package', function () {
+            self._downloadFile(self.mirrorURI, verbose)
+                .once('response', function (response) {
+                    event.emit('response-package', response)
+                })
+                .once('close', function (dir, clean) {
+                    function finish () {
+                        event.emit('finish')
+                    }
+                    if (!self.ignoreChecksum) {
+                        self.checkSum(dir).once('finish', function (isValid) {
+                            if (!isValid) {
+                                return event.emit('error', { code: 'invalid', message: 'Archivo invalido o corrupto' })
+                            }
+                            event.once('finish-copy', finish)
+                            event.emit('copy-file', dir, self.path, clean)
+                        })
+                            .on('error', function (err) {
+                                event.emit('error', err)
+                            })
+                    } else {
+                        event.once('finish-copy', finish)
+                        event.emit('copy-file', dir, self.path, clean)
+                    }
+                })
+        })
+        event.on('copy-file', function (dir, dest, clean) {
+            fs.copyFile(dir, dest, function (err) {
+                if (err) {
+                    return event.emit('error', err)
+                }
+                clean()
+                event.emit('finish-copy', dest)
+            })
+        })
+        if (!this.ignoreSig) {
+            event.emit('validate-signature')
+        } else {
+            event.emit('validate-package')
+        }
+        if (typeof callback === 'function') {
+            event.once('finish', function () {
                 callback()
             })
-            responseFile.once('error', callback)
+            event.once('error', callback)
             return
         }
-        return responseFile
+        return event
     }
-
-
-
-    _wrapper (uri) {
-        return new Promise(function (resolve, reject) {
-            getInfo(uri, function (err, info) {
-                if (err) {
-                    return reject(err)
-                }
-                resolve(info)
-            })
-        })
-    }
-
-    _download (uri, verbose, callback) {
-        if (verbose) {
-            process.stdout.write('Descargando paquete. ' + uri + '\n')
-        }
-        tmp.file(function _tempFileCreated (err, path, fd, cleanupCallback) {
-            if (err) {
-                cleanupCallback()
-                return callback(err)
-            }
-            var bar
-            request.get(uri)
-                .on('data', function (data) {
-                    const receive = data.length / 1024
-                    if (verbose) {
-                        bar.tick(receive)
-                    }
-                })
-                .on('response', function (response) {
-                    const count = parseInt(response.headers['content-length'], 10)
-                    bar = new ProgressBar('  downloading [:bar] :rate/kbps :percent :etas', {
-                        complete: '=',
-                        incomplete: ' ',
-                        width: 20,
-                        total: count / 1024
-                    })
-                    if (response.statusCode !== 200) {
-                        cleanupCallback()
-                        const error = {
-                            status: response.statusCode,
-                            text: response.statusMessage
-                        }
-                        return callback(error)
-                    }
-                    response.pipe(fs.createWriteStream(path))
-                        .on('close', function () {
-                            callback(null, path, cleanupCallback)
-                        })
-                })
-                .on('error', function (err) {
-                    cleanupCallback()
-                    callback(err)
-                })
-        })
-    }
-
-    // download (callback, ignoreSig, ignoreChecksum, verbose, force) {
-    //     var self = this
-    //     function downloadFile (uri, dest, callback2, ignore) {
-    //         self._download(uri, verbose, function (err, temp, clean) {
-    //             if (err) {
-    //                 return callback(err)
-    //             }
-    //             if (ignore) {
-    //                 return fs.copyFile(temp, dest, function (err) {
-    //                     if (err) {
-    //                         return callback(err)
-    //                     }
-    //                     clean()
-    //                     callback2()
-    //                 })
-    //             }
-    //             self.checkSum(function (err, hash) {
-    //                 if (err) {
-    //                     return callback(err)
-    //                 }
-    //                 if (hash !== self.md5) {
-    //                     var error = new Error('El archivo esta corrupto o dañado')
-    //                     error.code = 'CORRUPT'
-    //                     return callback(error)
-    //                 }
-    //                 fs.copyFile(temp, dest, function (err) {
-    //                     if (err) {
-    //                         return callback(err)
-    //                     }
-    //                     clean()
-    //                     callback2()
-    //                 })
-    //             }, temp)
-    //         })
-    //     }
-    //     function checkFile () {
-    //         if (force) {
-    //             return downloadFile(self.mirrorURI, self.path, function () {
-    //                 callback()
-    //             }, ignoreChecksum)
-    //         }
-    //         self.getFile(function (err, file) {
-    //             if (err) {
-    //                 return downloadFile(self.mirrorURI, self.path, function () {
-    //                     callback()
-    //                 }, ignoreChecksum)
-    //             }
-    //             if (verbose) {
-    //                 process.stdout.write(('El archivo ' + self.path + ' ya existe\n').green)
-    //             }
-    //             return callback()
-    //         })
-    //     }
-    //     if (ignoreSig) {
-    //         return checkFile()
-    //     }
-    //     if (force) {
-    //         return downloadFile(self.mirrorURI + '.sig', self.pathSig, function () {
-    //             checkFile()
-    //         }, true)
-    //     }
-    //     self.getSign(function (err, file) {
-    //         if (err) {
-    //             return downloadFile(self.mirrorURI + '.sig', self.pathSig, function () {
-    //                 checkFile()
-    //             }, true)
-    //         }
-    //         if (verbose) {
-    //             process.stdout.write(('El archivo ' + self.pathSig + ' ya existe\n').green)
-    //         }
-    //         checkFile()
-    //     })
-    // }
 }
 
 module.exports = Package

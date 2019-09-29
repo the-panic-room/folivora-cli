@@ -66,11 +66,11 @@ describe('Package', function () {
         var pack = new MockPackage(packageName, opt)
         var event = pack.download()
         event.on('finish', function () {
-            fs.unlink(pack.path, function (err) {
+            fs.unlink(pack.pathSig, function (err) {
                 if (err) {
                     return done(err)
                 }
-                fs.unlink(pack.pathSig, function (err) {
+                fs.unlink(pack.path, function (err) {
                     if (err) {
                         return done(err)
                     }
@@ -101,11 +101,9 @@ describe('Package', function () {
         var pack = new MockPackage(packageName, opt)
         var event = pack.download()
         event.on('finish', function () {
-            console.log('close')
             done('Esperado un error por integridad del archivo')
         })
         event.on('error', function (err) {
-            console.log('error')
             assert.strictEqual(err.code, 'invalid')
             done()
         })

@@ -5,13 +5,9 @@ const nock = require('nock')
 
 describe('Repository', function () {
     var mirror = 'http://quantum-mirror.hu/mirrors/pub/manjaro/stable/'
-    var responseContent = 'hola'
-    const responseHeader = {
-        'content-length': responseContent.length
-    }
     nock(mirror)
         .get('/repo/x86_64/repo.db.tar.gz')
-        .reply(200, responseContent, responseHeader)
+        .replyWithFile(200, path.resolve(__dirname, '../example/repo.db.tar.gz'))
     const Repository = require('../src/repo')
 
     it('Create repo object', function () {
@@ -33,8 +29,8 @@ describe('Repository', function () {
         })
         return repo.read().catch(function (err) {
             // Verificar que no existe el directorio
-            assert.strictEqual(err.code, 'ENOENT')
-            assert.strictEqual(err.path, repo.path)
+            assert.strictEqual(err.code, 'ENOTDIR')
+            assert.strictEqual(err.path, repo.db.path)
         })
     })
     it('create repo database invalid', function () {
@@ -45,7 +41,7 @@ describe('Repository', function () {
         })
         return repo.read().catch(function (error) {
             assert.strictEqual(error.code, 'ENOENT')
-            assert.strictEqual(error.path, repo.path + '/' + repo.db_name)
+            assert.strictEqual(error.path, repo.db.path)
         })
     })
     it('download database', function () {
@@ -57,14 +53,7 @@ describe('Repository', function () {
         return repo.updateDatabase()
             .then(function () {
                 assert.ok(repo.db, 'No existe el objeto de la base de datos')
-                return new Promise(function (resolve, reject) {
-                    repo.db.read(function (err, file) {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve(file)
-                    })
-                })
+                return repo.read()
             })
             .then(function () {
                 return new Promise(function (resolve, reject) {

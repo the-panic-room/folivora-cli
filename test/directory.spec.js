@@ -176,13 +176,14 @@ describe('Utils Directory', function () {
             assert.ok(data)
         })
     })
-    it('File: read', function () {
+    it('File: read', function (done) {
         var url = './example/extra.db.tar.gz'
         var obj = new File(url, {
             size: 135020 // bytes
         })
         obj.read().on('entry', function (data) {
             assert.ok(data)
-        })
+            done()
+        }).on('error', done)
     })
 })

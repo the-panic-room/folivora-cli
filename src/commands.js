@@ -66,14 +66,14 @@ module.exports.download = function (name, dir, cmd) {
             resolve()
         })
     })
-    p1.then(function () {
+    return p1.then(function () {
         return repo.updateDatabase()
             .then(function () {
                 return repo.read()
             })
     })
         .then(function () {
-            return repo.packages.asyncForeach(function (pkg) {
+            return repo.db.packages.asyncForeach(function (pkg) {
                 return new Promise(function (resolve, reject) {
                     pkg.download(function (err, file) {
                         if (cmd.verbose && err) {

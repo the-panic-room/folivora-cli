@@ -33,26 +33,26 @@ describe('command: download package', function () {
     const dbname = 'extra.db.tar.gz'
     const baseURI = '/extra/x86_64/'
     const responseContent = 'hola'
-    before(function (done) {
-        fs.copyFile(path.resolve('./example/' + dbname), path.join(dirPath, dbname), function (err) {
-            done(err)
-        })
-    })
+    // before(function (done) {
+    //     fs.copyFile(path.resolve('./example/' + dbname), path.join(dirPath, dbname), function (err) {
+    //         done(err)
+    //     })
+    // })
     it('download sucess', function () {
         nock(mirror)
-            .get(baseURI + 'extra.db.tar.gz')
-            .reply(200, responseContent)
+            .get(baseURI + dbname)
+            .replyWithFile(200, path.resolve(__dirname, '../example/', dbname))
             .get(baseURI + 'acl-2.2.53-1-x86_64.pkg.tar.xz.sig')
             .reply(200, responseContent)
             .get(baseURI + 'acl-2.2.53-1-x86_64.pkg.tar.xz')
             .reply(200, responseContent)
-            .get('/extra/any/amd-ucode-20190726.dff98c6-1-any.pkg.tar.xz.sig')
+            .get('/extra/x86_64/amd-ucode-20190726.dff98c6-1-any.pkg.tar.xz.sig')
             .reply(200, responseContent)
-            .get('/extra/any/amd-ucode-20190726.dff98c6-1-any.pkg.tar.xz')
+            .get('/extra/x86_64/amd-ucode-20190726.dff98c6-1-any.pkg.tar.xz')
             .reply(200, responseContent)
-            .get('/extra/any/archlinux-keyring-20190805-1-any.pkg.tar.xz.sig')
+            .get('/extra/x86_64/archlinux-keyring-20190805-1-any.pkg.tar.xz.sig')
             .reply(200, responseContent)
-            .get('/extra/any/archlinux-keyring-20190805-1-any.pkg.tar.xz')
+            .get('/extra/x86_64/archlinux-keyring-20190805-1-any.pkg.tar.xz')
             .reply(200, responseContent)
             .get(baseURI + 'argon2-20190702-1-x86_64.pkg.tar.xz.sig')
             .reply(200, responseContent)
@@ -64,6 +64,10 @@ describe('command: download package', function () {
             verbose: false,
             arch: 'x86_64'
         })
+            .then(function (err) {
+                console.log(err)
+                assert.ok(typeof err === 'undefined')
+            })
     })
     after(function (done) {
         fs.unlink(path.join(dirPath, 'extra.db.tar.gz'), function (err) {
