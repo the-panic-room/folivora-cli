@@ -54,7 +54,7 @@ module.exports = function (hostname, cmd) {
             response.status(err.status || 503).send(('message' in err) ? err.message : err)
         }
         function _downloadFile () {
-            downloadFile(repo.mirror + filename, true)
+            downloadFile(repo.db.mirror + '/' + filename, true)
                 .on('error', errorHandler)
                 .on('success', function (stream) {
                     stream.on('error', errorHandler)
