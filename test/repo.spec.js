@@ -29,7 +29,7 @@ describe('Repository', function () {
         })
         return repo.read().catch(function (err) {
             // Verificar que no existe el directorio
-            assert.strictEqual(err.code, 'ENOTDIR')
+            assert.strictEqual(err.code, 'ENOENT')
             assert.strictEqual(err.path, repo.db.path)
         })
     })

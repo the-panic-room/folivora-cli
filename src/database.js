@@ -29,7 +29,7 @@ class Database extends Package {
             if (err) {
                 return callback(err)
             }
-            self.updated = new Date(data.toString())
+            self.updated = new Date(parseInt(data.toString()))
             callback(null, self.updated)
         })
     }
@@ -41,7 +41,7 @@ class Database extends Package {
      */
     updateState (callback) {
         this.updated = new Date()
-        fs.writeFile(path.join(this.path, '.state'), this.updated.getTime(), function () {
+        fs.writeFile(path.join(this.dir, '.state'), this.updated.getTime(), function () {
             if (typeof callback === 'function') {
                 callback()
             }

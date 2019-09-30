@@ -1,11 +1,9 @@
 const path = require('path')
-const tmp = require('tmp')
 const fs = require('fs')
-const request = require('request')
 const crypto = require('crypto')
-const ProgressBar = require('progress')
 const getInfo = require('./infofile')
 const EventEmitter = require('events').EventEmitter
+const downloadFile = require('./utils').downloadFile
 
 /**
  * @class Package
@@ -183,55 +181,7 @@ class Package extends EventEmitter {
      * @param {Boolean} verbose mostrar mas detalles en consola.
      */
     _downloadFile (url, verbose) {
-        var event = new EventEmitter()
-        event.once('temp-file', function (dir, clean) {
-            var stream = fs.createWriteStream(dir)
-                .on('close', function () {
-                    event.emit('close', dir, clean)
-                })
-            var response = request.get(url)
-            var bar = null
-            if (verbose) {
-                process.stdout.write('Descargando paquete. ' + url + '\n')
-            }
-            response.on('response', function (response) {
-                const count = parseInt(response.headers['content-length'], 10)
-                bar = new ProgressBar('  downloading [:bar] :rate/kbps :percent :etas', {
-                    complete: '=',
-                    incomplete: ' ',
-                    width: 20,
-                    total: count / 1024
-                })
-                if (response.statusCode !== 200) {
-                    const error = {
-                        status: response.statusCode,
-                        text: response.statusMessage
-                    }
-                    return event.emit('error', error)
-                }
-                response.on('end', function () {
-                    if (verbose) {
-                        process.stdout.write('Descarga completada: ' + url + '\n')
-                    }
-                })
-            })
-                .on('data', function (data) {
-                    const receive = data.length / 1024
-                    if (verbose) {
-                        bar.tick(receive)
-                    }
-                })
-                .pipe(stream)
-            event.emit('response', response)
-        })
-        tmp.file(function _tempFileCreated (err, path, fd, cleanupCallback) {
-            if (err) {
-                event.emit('error', err)
-                return
-            }
-            event.emit('temp-file', path, cleanupCallback)
-        })
-        return event
+        return downloadFile(url, verbose)
     }
 
     /**

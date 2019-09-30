@@ -7,52 +7,25 @@ const loadJsonFile = require('load-json-file')
 const logger = require('morgan')
 const getinfo = require('./src').getinfo
 const Repository = require('./src').Repository
+const downloadFile = require('./src/utils').downloadFile
 var MIRRORS = []
 
-function downloadPackage (repo, filename, verbose, isDB) {    
-    if (isDB) {
-        return repo.updateDatabase(verbose, true).then(function () {
-            return new Promise(function (resolve, reject) {
-                repo.db.getFile(function (err, file) {
-                    if (err) {
-                        return reject(err)
-                    }
-                    resolve(file.read(true))
-                })
-            })
-        })
-    }
-    return repo.read().then(function () {
-        return repo.getPackage(filename)
-    })
-        .then(function (pack) {
-            if (!pack) {
-                throw new Error('No existe el paquete en la base de datos')
-            }
-            return new Promise(function (resolve, reject) {
-                pack.download(function (err) {
-                    if (err) {
-                        return reject(err)
-                    }
-                    const fn = (/.sig$/ig.test(filename)) ? pack.getSign : pack.getFile
-                    fn.apply(pack, [function (err, file) {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve(file.read(true))
-                    }])
-                }, false, false, verbose)
-            })
-        })
-}
-module.exports = function (host, port, cmd) {
-    host = host || '127.0.0.1'
-    port = port || 8000
+module.exports = function (hostname, cmd) {
+    var hostArg = (hostname || '127.0.0.1').split(':')
+    var host = hostArg[0]
+    var port = parseInt(hostArg[1] || '8000')
     var app = express()
+    var online = !cmd.offline
     const dir = cmd.cachePath || process.env.MIRROR_PATH || '/var/cache/folivora/'
     const mirror = process.env.MIRROR_CONFIG || path.resolve('./repo.json')
     if (cmd.verbose) {
         app.use(logger('dev'))
+    }
+    function checkTimeOutOnline () {
+        setTimeout(function () {
+            online = true
+            console.log('Ha sido reestablecida la conexion.')
+        }, 30000)
     }
     app.get('/:system/:canal/:name/:arch/:filename', function (request, response, next) {
         const name = request.params.name
@@ -68,53 +41,80 @@ module.exports = function (host, port, cmd) {
             mirror: uri + canal + '/',
             path: root
         })
-        const isDB = filename === repo.db_name
         if (['x86_64', 'i836', 'any'].indexOf(arch) === -1) {
             return response.status(400).send('Arquitectura no soportada')
         }
-        var p1 = new Promise(function (resolve, reject) {
-            getinfo(root, function (err) {
-                if (err) {
-                    return mkdirp(root, function (err) {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve()
-                    })
-                }
-                resolve()
-            })
-        })
-        p1.then(function () {
-            if (!cmd.forceDownload || cmd.offline) {
-                return Promise.resolve(false)
+        function errorHandler (err) {
+            if (err.code === 'ENOTFOUND') {
+                online = false
+                console.log('El sistema ha sido desconectado de la red.')
+                checkTimeOutOnline()
             }
-            return new Promise(function (resolve) {
-                repo.readState(function () {
-                    resolve(Math.abs(Date.now() - repo.updated) >= 86400000)
+            console.log(err)
+            response.status(err.status || 503).send(('message' in err) ? err.message : err)
+        }
+        function _downloadFile () {
+            downloadFile(repo.mirror + filename, true)
+                .on('error', errorHandler)
+                .on('success', function (stream) {
+                    stream.on('error', errorHandler)
+                        .pipe(response)
                 })
-            })
-        })
-            .then(function (isForceUpdate) {
-                getinfo(filePath, function (err, file) {
-                    if (err || (isDB && isForceUpdate)) {
-                        if (cmd.offline || !uri) {
-                            return response.sendStatus(404)
+                .on('close', function (tmp, clean) {
+                    fs.copyFile(tmp, filePath, function (err) {
+                        if (err) {
+                            console.log('No se pudo respaldar el paquete: %s', filePath)
                         }
-                        return downloadPackage(repo, filename, cmd.verbose, isDB)
-                            .then(function (stream) {
-                                stream.pipe(response)
-                            })
-                            .catch(function () {
-                                response.status(503).send('No se pudo descargar el archivo')
-                            })
-                    }
-                    file.read(true).pipe(response)
+                    })
                 })
+        }
+        function init () {
+            repo.db.readState(function () {
+                getinfo(filePath).on('error', function () {
+                    if (online) {
+                        return _downloadFile()
+                    }
+                    errorHandler({ status: 404, message: 'No Found' })
+                })
+                    .on('data', function (file) {
+                        console.log('Busqueda encontrada en: %s', filePath)
+                        var time = (repo.db.updated) ? repo.db.updated.getTime() : 0
+                        if (!cmd.offline && online && filename === repo.db.filename && Math.abs(Date.now() - time) >= 86400000) {
+                            repo.db.forceDownload = true
+                            return repo.db.download(null, true).on('error', errorHandler)
+                                .on('response', function (stream) {
+                                    stream.on('error', errorHandler)
+                                        .pipe(response)
+                                })
+                        }
+                        repo.db.read().on('error', errorHandler)
+                            .on('finish', function () {
+                                function send () {
+                                    file.read(true).pipe(response)
+                                }
+                                var instance = repo.getPackage(filename)
+                                if (instance) {
+                                    instance.checkSum().on('error', errorHandler)
+                                        .on('finish', function (isValid) {
+                                            if (!isValid) {
+                                                if (!online) {
+                                                    return errorHandler({ status: 401, message: 'Invalid File' })
+                                                }
+                                                return _downloadFile()
+                                            }
+                                            send()
+                                        })
+                                } else {
+                                    send()
+                                }
+                            })
+                    })
             })
-            .catch(function (err) {
-                response.status(500).send(err.toString())
-            })
+        }
+        getinfo(root).on('error', function () {
+            mkdirp(root, init)
+        })
+            .on('data', init)
     })
     loadJsonFile(mirror).then(function (data) {
         MIRRORS = data || []
