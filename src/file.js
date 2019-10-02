@@ -61,8 +61,8 @@ class File extends InfoBase {
      * @param {Boolean} only retornar dato en bruto si es true.
      * @returns {ReadStream|internal.Writable}
      */
-    read (only) {
-        let file = fs.createReadStream(this.path)
+    read (only, options) {
+        let file = fs.createReadStream(this.path, options)
         if (!only && this.isCompress()) {
             if (['.zip', '.tar'].indexOf(this.ext) !== -1) {
                 file = file.pipe(zlib.Unzip())

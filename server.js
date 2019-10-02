@@ -4,6 +4,9 @@ const fs = require('fs')
 const express = require('express')
 const mkdirp = require('mkdirp')
 const loadJsonFile = require('load-json-file')
+const parse = require('http-range-parse')
+const contentDisposition = require('content-disposition')
+const format = require('http-content-range-format')
 const logger = require('morgan')
 const getinfo = require('./src').getinfo
 const Repository = require('./src').Repository
@@ -36,6 +39,10 @@ module.exports = function (hostname, cmd) {
         const uri = MIRRORS[system.toLowerCase()]
         const root = path.resolve(dir, system, canal, name, arch)
         const filePath = path.join(root, filename)
+        const limit = 36500
+        request.range = request.headers.range
+            ? parse(request.headers.range)
+            : null
         var repo = new Repository(name, {
             arch: arch,
             mirror: uri + canal + '/',
@@ -50,7 +57,6 @@ module.exports = function (hostname, cmd) {
                 console.log('El sistema ha sido desconectado de la red.')
                 checkTimeOutOnline()
             }
-            console.log(err)
             response.status(err.status || 503).send(('message' in err) ? err.message : err)
         }
         function _downloadFile () {
@@ -78,6 +84,13 @@ module.exports = function (hostname, cmd) {
                 })
                     .on('data', function (file) {
                         console.log('Busqueda encontrada en: %s', filePath)
+                        if (file.size === 0) {
+                            console.log('Archivo encontrado como vacio: %s', filePath)
+                            if (!online || cmd.offline) {
+                                return errorHandler({ status: 201, message: 'No content' })
+                            }
+                            return _downloadFile()
+                        }
                         var time = (repo.db.updated) ? repo.db.updated.getTime() : 0
                         if (!cmd.offline && online && filename === repo.db.filename && Math.abs(Date.now() - time) >= 86400000) {
                             repo.db.forceDownload = true
@@ -90,7 +103,24 @@ module.exports = function (hostname, cmd) {
                         repo.db.read().on('error', errorHandler)
                             .on('finish', function () {
                                 function send () {
-                                    file.read(true).pipe(response)
+                                    const unit = 'bytes'
+                                    response.set('Content-disposition', contentDisposition(file.basename))
+                                        .set('Accept-Ranges', unit)
+                                    var options = {}
+                                    if (request.range) {
+                                        const start = request.range.first
+                                        const end = request.range.last || start + limit - 1
+                                        response.set('Content-Length', end - start)
+                                        response.setHeader('Content-Range', format({
+                                            unit: unit,
+                                            first: start,
+                                            last: (end < file.size) ? end : (file.size - 1),
+                                            length: file.size
+                                        }))
+                                        response.status(206)
+                                        options = { start: start, end: end }
+                                    }
+                                    file.read(true, options).pipe(response)
                                 }
                                 var instance = repo.getPackage(filename)
                                 if (instance) {
