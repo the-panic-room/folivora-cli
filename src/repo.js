@@ -10,7 +10,7 @@ class Repository {
         this.mirror = options.mirror
         this.arch = options.arch || 'any'
         this.updated = 0
-        var database = name + '.db.tar.gz'
+        var database = options.database || (name + '.db.tar.gz')
         this.db = new Database(database, {
             arch: this.arch,
             mirror: this.mirror + this.name + '/' + this.arch,
