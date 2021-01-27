@@ -39,7 +39,7 @@ module.exports = function (hostname, cmd) {
         const uri = MIRRORS[system.toLowerCase()]
         const root = path.resolve(dir, system, canal, name, arch)
         const filePath = path.join(root, filename)
-        const limit = 36500
+        const limit = 36500;
         request.range = request.headers.range
             ? parse(request.headers.range)
             : null
